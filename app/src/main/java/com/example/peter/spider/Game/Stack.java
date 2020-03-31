@@ -21,7 +21,8 @@ class Stack {
     private static final int VERTICAL_CARD_SPACING = 40;
     // Game properties
     int stackId;
-    ArrayList<Card> cards;
+    //ArrayList<Card> cards;
+    Card head; // This will be the first node in the stack, w/ pointer to next
 
     // Location/motion properties
     int left;  // The left (X) coordinate of the stack in the canvas
@@ -32,9 +33,9 @@ class Stack {
     boolean moving;  // true if the card is currently being moved
     Paint holderColor;
 
-    public Stack(int stackId, ArrayList<Card> cards) {
+    public Stack(int stackId, Card head) {
         this.stackId = stackId;
-        this.cards = cards;
+        this.head = head;
         this.left = 0;
         this.top = 0;
         holderColor = new Paint();

@@ -60,31 +60,38 @@ public class Master {
             // For cards 0 - 27, distribute to each stack (stack 0 gets 0, stack 1 gets 1... stack 7)
             //new Stack[NUM_STACKS]
             Stack[] stacks = new Stack[NUM_STACKS];
+            // First, empty stack
+            stacks[0] = new Stack(0, null);
             int cardNum = 0;
-            // Loop through 8 stacks
-            for (int j=0; j<8; ++j) {
-                ArrayList<Card> cards = new ArrayList<Card>();
-                for (int i=0; i<j; ++i) {
-                    cards.add(deck[cardNum]);
+            // Loop through stacks 2 -> 7
+            for (int j=1; j<8; ++j) {
+                // Get first card
+                Card head = deck[cardNum];
+                cardNum++;
+                Card next = head;
+                //ArrayList<Card> cards = new ArrayList<Card>();
+                for (int i=1; i<j; ++i) {
+                    // Set pointer to next card in stack
+                    next.next = deck[cardNum];
+                    next = deck[cardNum];
                     cardNum++;
                 }
                 // Unhide top card
-                if (cards.size() > 0) {
-                    cards.get(cards.size()-1).unhide();
-                }
-                stacks[j] = new Stack(j, cards);
+                deck[cardNum-1].unhide();
+                stacks[j] = new Stack(j, head);
             }
 
             // Add remaining cards to unplayed stack
-            ArrayList<Card> remaining_cards = new ArrayList<Card>();
-            // TODO: Ensure not supposed to be <= as well
+//            ArrayList<Card> remaining_cards = new ArrayList<Card>();
+            Card remainingHead = deck[cardNum];
+            // TODO
             for (int i=cardNum; i < DECK_SIZE; ++i) {
                 remaining_cards.add(deck[i]);
             }
-            stacks[8] = new Stack(8, remaining_cards);
+            stacks[8] = new Stack(8, remainingHead);
 
             // Initialize complete stack
-            stacks[9] = new Stack(9, new ArrayList<Card>());
+            stacks[9] = new Stack(9, null);
             return stacks;
         }
     }

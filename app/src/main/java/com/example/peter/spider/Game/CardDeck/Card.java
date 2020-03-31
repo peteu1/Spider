@@ -14,6 +14,7 @@ public class Card {
     public boolean hidden;
     public int cardSuit, cardValue;
     public String suit, value;
+    public Card next;  // reference to card below this card
     private Paint blockColor, hiddenColor, textPaint;
 
     public Card(int cardSuit, int cardValue) {
