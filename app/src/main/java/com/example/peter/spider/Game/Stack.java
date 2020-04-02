@@ -17,7 +17,7 @@ class Stack {
      *      1 for solved cards
      * Then another temporary instance used for moving cards
      */
-
+    private static final String TAG = "Stack";
     private static final int VERTICAL_CARD_SPACING = 40;
     // Game properties
     int stackId;
@@ -30,6 +30,7 @@ class Stack {
     int cardWidth;
     int cardHeight;
     int stackHeight = 0;
+    int numCards = 0;
     boolean moving;  // true if the card is currently being moved
     Paint holderColor;
 
@@ -44,10 +45,17 @@ class Stack {
 
     public void computeHeight() {
         // Re-compute stack height
-        if (stackId < 8 ) {
-            stackHeight = ((cards.size()-1)*VERTICAL_CARD_SPACING)+cardHeight;
-        } else {
+        if (head == null) {
+            this.numCards = 0;
             stackHeight = cardHeight;
+        } else {
+            this.numCards = head.cardsBelow();
+            if (stackId < 8) {
+                stackHeight = ((this.numCards-1)*VERTICAL_CARD_SPACING)+cardHeight;
+            } else {
+                // Completed and un-played card stacks have cards on top of each other
+                stackHeight = cardHeight;
+            }
         }
     }
 
@@ -58,8 +66,11 @@ class Stack {
          */
         this.cardWidth = cardWidth;
         cardHeight = (int) (cardWidth * 1.5);
-        for (Card card : cards) {
+        Card card = head;
+        while (card != null) {
+            Log.e(TAG, "Setting size for:" + card.cardValue);
             card.setSize(cardWidth, cardHeight);
+            card = card.next;
         }
         this.computeHeight();
         if (!moving) {
@@ -76,29 +87,37 @@ class Stack {
         /**
          * Update position of MOVING STACK (only called for stack in motion)
          */
-
         // Adjust display location so that finger is in bottom right corner
         left = (int) x - cardWidth;
         top = (int) y - stackHeight;
     }
 
-    public void flipTopCard() {
-        if (cards.size() > 0) {
-            cards.get(cards.size()-1).unhide();
+    public void flipBottomCard() {
+        /**
+         * Turns over (un-hides) the bottom card in the stack
+         */
+        if (head != null) {
+            head.bottomCard().unhide();
         }
     }
 
     public void drawStack(Canvas canvas) {
-        // Tells each card where to draw itself
+        /**
+         * Tells each card where to draw itself
+         */
         if (stackId < 8) {
             // Draw stack holder for playing stacks
             if (stackId >= 0) {
                 canvas.drawRect(left, top, left+cardWidth, top+cardHeight, holderColor);
             }
-            // Draw playing stacks and moving stack
-            for (int i=0; i < cards.size(); i++) {
-                int cardTop = top + i*VERTICAL_CARD_SPACING;
-                cards.get(i).draw(canvas, left, cardTop);
+            // Draw playing stacks (& moving stack if exists)
+            int cardIdx = 0;
+            Card card = head;
+            while (card != null) {
+                int cardTop = top + cardIdx*VERTICAL_CARD_SPACING;
+                card.draw(canvas, left, cardTop);
+                card = card.next;
+                cardIdx++;
             }
         }
         else if (stackId == 8) {
@@ -124,48 +143,75 @@ class Stack {
          *  to the end of this stack
          * Otherwise, return null
          */
-        if (x > left && x < (left+cardWidth) && cards.size() > 0) {
+        if (x > left && x < (left+cardWidth) && numCards > 0) {
             // X-coordinate of touch is within stack
             Log.e("STACK", "y:" + String.valueOf(y) + ", top:" + String.valueOf(top) + ", stackHeight:" + String.valueOf(stackHeight));
             if (y > top && y < (stackHeight+top)) {
-                // TODO: use linked list instead?
                 // The stack was touched, collect stack of cards touched
-                ArrayList<Card> cardsTouched = new ArrayList<Card>();
-                // Get next 8 cards if top
                 if (stackId == 8) {
-                    Log.e("STACK", "numCard:" + String.valueOf(cards.size()));
-                    for (int i=0; i < 8; ++i) {
-                        cardsTouched.add(cards.get(cards.size()-9));
+                    // Return next 8 cards if new cards (top-right) touched
+                    Log.e("STACK", "numCard:" + numCards);
+                    // Get the card 8th from last (24 un-played cards initially)
+                    Stack returnStack;
+                    if (numCards == 8) {
+                        // Last 8 cards
+                        returnStack = new Stack(-2, head);
+                        head = null;
                     }
-                    Stack s = new Stack(-2, cardsTouched);
-                    this.removeStack(s);
-                    return s;
+                    else {
+                        Card prev = head;
+                        Card next = head.next;
+                        for (int i=0; i<(numCards-9); ++i) {
+                            prev = prev.next;
+                            next = next.next;
+                        }
+                        returnStack = new Stack(-2, next);
+                        prev.next = null;
+                    }
+                    this.computeHeight();
+                    return returnStack;
                 }
+                // Normal playing stack touched, find which card was touched
+                // Get index of card touched
                 int topCardIdx =  (int) (((int)y-top) / VERTICAL_CARD_SPACING);
                 Log.e("STACK", "Top card:" + String.valueOf(topCardIdx));
-                boolean valid = true;
-                if (topCardIdx >= cards.size()) {
-                    cardsTouched.add(cards.get(cards.size()-1));
+                Card cardTouched;
+                boolean valid = true;  // valid until proven invalid
+                if (topCardIdx >= numCards) {
+                    // Take the bottom card (always valid)
+                    cardTouched = head.bottomCard();
+                    topCardIdx = numCards-1;
                 } else {
-                    for (int i=topCardIdx; i < cards.size(); ++i) {
-                        cardsTouched.add(cards.get(i));
+                    // Get card at topCardIdx
+                    cardTouched = head;
+                    for (int i=0; i < topCardIdx; ++i) {
+                        cardTouched = cardTouched.next;
                     }
-                    // Loop through cards in list and make sure they can be moved
-                    Card topCard = cardsTouched.get(0);
-                    for (int j=1; j<cardsTouched.size(); ++j) {
-                        Card nextCard = cardsTouched.get(j);
-                        if (!topCard.canHold(nextCard)) {
-                            valid = false;
-                            j = 53;  // break from loop
+                    // Loop through cards below and make sure they can be moved
+                    Card nextCard = cardTouched;
+                    while (nextCard.next != null && valid) {
+                        if (nextCard.canHold()) {
+                            nextCard = nextCard.next;
+                        } else {
+                            valid = false;  // invalid move, break loop
                         }
-                        topCard = nextCard;
                     }
                 }
                 if (valid) {
-                    // Remove cards from this stack and return
-                    Stack stackTouched = new Stack(-1, cardsTouched);
-                    this.removeStack(stackTouched);
+                    // Get stack to return
+                    Stack stackTouched = new Stack(-1, cardTouched);
                     stackTouched.moving = true;
+                    // Remove cards from this stack
+                    if (topCardIdx == 0) {
+                        head = null;
+                    } else {
+                        Card endCard = head;
+                        for (int i=0; i<(topCardIdx-1); ++i) {
+                            endCard = endCard.next;
+                        }
+                        endCard.next = null;
+                    }
+                    this.computeHeight();
                     return stackTouched;
                 }
             }
@@ -173,52 +219,66 @@ class Stack {
         return null;
     }
 
-    private void removeStack(Stack s) {
-        // Remove cards that were sent to moving stack
-        // TODO: Could do this more easily with linked list
-        int removeFrom = this.cards.size() - s.cards.size();
-        for (int i=this.cards.size()-1; i >= removeFrom; --i) {
-            this.cards.remove(i);
+    private Card getLastCard() {
+        /**
+         * Returns the bottom card in this stack, null if stack is empty
+         */
+        if (head == null) {
+            return null;
         }
-        // Re-compute stack height
-        this.computeHeight();
+        return head.bottomCard();
     }
 
     public Stack addStack(Stack s) {
         /**
          * Adds a stack (the moving stack) to the bottom of this stack
+         * - NOTE: The add has already been deemed legal, so just add it
          * @return completed stack if full stack made, otherwise null
          */
-        for (Card card : s.cards) {
-            this.cards.add(card);
+        Card last = getLastCard();
+        if (last == null) {
+            head = s.head;
+        }
+        else {
+            last.next = s.head;
         }
         // Re-compute stack height
         this.computeHeight();
         // Check if full stack created
-        if (stackId < 8 && cards.size() >= 13) {
-            int lastCardIdx = cards.size()-1;
-            Card lastCard = cards.get(lastCardIdx);
-            if (lastCard.cardValue == 1) {
+        if (stackId < 8 && numCards >= 13) {
+            // Get the 13th card from bottom
+            int cardIdx = 0;
+            Card start = head;
+            while (cardIdx < (numCards-13)) {
+                start = start.next;
+                cardIdx++;
+            }
+            Card check = start;
+            if (check.bottomCard().cardValue == 1) {
                 boolean stackCreated = true;
-                // Loop from 2nd to last card, backwards to 13th to last card
-                for (int i=lastCardIdx-1; i>=(cards.size()-13); --i) {
-                    Card c = cards.get(i);
-                    if (c.canHold(lastCard)) {
-                        lastCard = c;
-                    }
-                    else {
-                        stackCreated = false;
-                        i = -1;  // break loop
+                // Loop through stack and verify suited/sequential
+                while (check.next != null && stackCreated) {
+                    if (check.canHold()) {
+                        check = check.next;
+                    } else {
+                        stackCreated = false;  // no complete stack, break loop
                     }
                 }
                 if (stackCreated) {
-                    // return completed stack and remove from this stack
-                    ArrayList<Card> compCards = new ArrayList<Card>();
-                    for (int i=lastCardIdx; i>=(cards.size()-13); --i) {
-                        compCards.add(cards.get(i));
+                    // Get completed stack
+                    Stack completedStack = new Stack(-2, start);
+                    // Remove completed stack from this stack
+                    if (numCards == 13) {
+                        head = null;
                     }
-                    Stack completedStack = new Stack(-2, compCards);
-                    this.removeStack(completedStack);
+                    else {
+                        Card lastCard = head;
+                        for (int i=0; i < (numCards-14); ++i) {
+                            lastCard = lastCard.next;
+                        }
+                        lastCard.next = null;
+                    }
+                    this.computeHeight();
                     return completedStack;
                 }
             }
@@ -250,11 +310,11 @@ class Stack {
          * This is called directly from Master when the screen is tapped.
          * Returns 1 if legal, -1 if not legal
          */
-        if (cards.size() == 0) {
+        if (head == null) {
             // Empty stack -> legal placement
             return 1;
         }
-        Card bottomCard = cards.get(cards.size()-1);
+        Card bottomCard = head.bottomCard();
         if (bottomCard.canPlace(topCardValue)) {
             // Legal placement
             return 1;
@@ -267,10 +327,8 @@ class Stack {
         /**
          * Adds a single card (when new cards are drawn)
          */
-        ArrayList<Card> newCard = new ArrayList<Card>();
-        newCard.add(card);
-        newCard.get(0).unhide();
-        Stack newStack = new Stack(-3, newCard);
+        card.unhide();
+        Stack newStack = new Stack(-3, card);
         this.addStack(newStack);
     }
 

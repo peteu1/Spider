@@ -3,6 +3,7 @@ package com.example.peter.spider;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -10,6 +11,15 @@ import android.widget.Button;
 public class MainActivity extends Activity implements View.OnClickListener {
 
     private Button easy, medium, hard, expert;
+
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+//                WindowManager.LayoutParams.FLAG_FULLSCREEN);  // Make full screen
+//        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+//        setContentView(new GameView(this));
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,7 +58,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (difficulty > 0) {
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                     WindowManager.LayoutParams.FLAG_FULLSCREEN);  // Make full screen
-
             setContentView(new GameView(this, difficulty));
         }
     }

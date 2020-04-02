@@ -13,6 +13,8 @@ import android.view.SurfaceView;
 import com.example.peter.spider.Game.Master;
 
 class GameView extends SurfaceView implements SurfaceHolder.Callback {
+
+    private static final String TAG = "GameView";
     private MainThread thread;
     private boolean cardsInMotion;
     private Master master;
@@ -80,8 +82,12 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 Log.e("action", "Touch released, x:" + String.valueOf(x) + ", y:" + String.valueOf(y));
                 if (cardsInMotion) {
                     // Lock into place if legal move, else go back to initial location
-                    master.endStackMotion(x, y);
+                    boolean gameOver = master.endStackMotion(x, y);
                     cardsInMotion = false;
+                    if (gameOver) {
+                        // TODO: Stop clock, go to game won screen, show stats
+                        Log.e(TAG, "You win!");
+                    }
                 }
                 break;
             case MotionEvent.ACTION_CANCEL:

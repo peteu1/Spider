@@ -23,6 +23,7 @@ public class Card {
         suit = displaySuit();
         value = displayValue();
         hidden = true;
+        next = null;
 
         // TODO: Make cards look nicer
         blockColor = new Paint();
@@ -50,6 +51,7 @@ public class Card {
     }
 
     private String displaySuit() {
+        // TODO: Suits are all appearing as "C"... 4?
         // TODO: get symbols
         String suit = "X";
         switch (cardSuit) {
@@ -76,15 +78,22 @@ public class Card {
     }
 
     public boolean canPlace(int otherVal) {
-        // Returns true if card with value can be placed on top of this card
+        // Returns true if card with value otherVal can be placed on top of this card
         return (this.cardValue-1) == otherVal;
     }
 
-    public boolean canHold(Card other) {
+    public boolean canHold() {
+        /**
+         * Checks if this card can be moved based on next card value/suit
+         */
         // Checks if this card can be moved while holding other on top of it
         if (!hidden) {
-            if (cardSuit == other.cardSuit) {
-                if ((this.cardValue-1) == other.cardValue) {
+            if (next == null) {
+                // Nothing after this card, so it can be moved regardless
+                return true;
+            }
+            if (cardSuit == next.cardSuit) {
+                if ((this.cardValue-1) == next.cardValue) {
                     return true;
                 }
             }
@@ -103,6 +112,34 @@ public class Card {
         }
         // Draw divider between cards
         canvas.drawRect(left, top, left+width, top+2, textPaint);
+    }
+
+    public Card bottomCard() {
+        /**
+         * Iterates the cards below and returns the last (bottom) card.
+         */
+        if (next == null) {
+            return this;
+        }
+        Card last = this;
+        while (last.next != null) {
+            last = last.next;
+        }
+        return last;
+    }
+
+    public int cardsBelow() {
+        /**
+         * Returns the number of cards attached to this
+         *  card (including this one)
+         */
+        int numCards = 1;
+        Card next = this.next;
+        while (next != null) {
+            next = next.next;
+            numCards++;
+        }
+        return numCards;
     }
 
 }
