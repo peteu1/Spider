@@ -1,6 +1,8 @@
 package com.example.peter.spider.Game;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
@@ -17,13 +19,16 @@ public class Master {
     // TODO: class to store history stack movement so that undo can work
 
     private static final String TAG = "Master";
+    public int difficulty;
+    private Paint textPaint;
+    private ArrayList<HistoryObject> history;
 
     private static final int DECK_SIZE = 52;
     private static final int NUM_STACKS = 10;
-    public int difficulty;
     public Card[] deck;
-    private static final int DEFAULT_STACK_Y = 200;
-    private int screenWidth, screenHeight, stackWidth, cardWidth;
+    // This is the top of completed and un-played stacks
+    private static final int NON_PLAYING_STACK_Y = 50;
+    public int screenWidth, screenHeight, stackWidth, cardWidth;
     public Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
     // The following are used to track a moving stack
     private Stack movingStack = null;
@@ -32,24 +37,31 @@ public class Master {
 
     public Master(DisplayMetrics displayMetrics, int difficulty) {
         this.difficulty = difficulty;
+        textPaint = new Paint();
+        textPaint.setColor(Color.rgb(30,30,30));
+        textPaint.setTextSize(30);
+        history = new ArrayList<HistoryObject>();
         deck = shuffleDeck();
         stacks = dealStacks();
         screenWidth = displayMetrics.widthPixels;
         screenHeight = displayMetrics.heightPixels;
-        // Margin = 0.05 screen width (for left & right)
+        // Left/right margins: 0.05 screen width
         stackWidth = (int) ((0.9 * screenWidth) / 8);
-        // spacing b/w stacks = 5 px
+        // spacing between stacks: 5 px
         cardWidth = stackWidth - 5;
+        // Playing stacks start 30 pixels below non-playing stacks
+        int cardHeight = (int) (cardWidth * 1.5);
+        int stackTop = NON_PLAYING_STACK_Y + cardHeight + 30;
         // Assign location to each of the stacks
         double stackLeft = 0.05*screenWidth;
         for (int j=0; j<8; ++j) {
             Stack stack = stacks[j];
-            stack.assignPosition((int) stackLeft, DEFAULT_STACK_Y, cardWidth);
+            stack.assignPosition((int) stackLeft, stackTop, cardWidth);
             stackLeft += stackWidth;
         }
         // Initiate un-played cards and stack locations
-        stacks[8].assignPosition((int) (0.8*screenWidth), 50, cardWidth);
-        stacks[9].assignPosition((int) (0.1*screenWidth), 50, cardWidth);
+        stacks[8].assignPosition((int) (0.8*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
+        stacks[9].assignPosition((int) (0.1*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
     }
 
     private Card[] shuffleDeck() {
@@ -122,6 +134,8 @@ public class Master {
         if (movingStack != null) {
             movingStack.drawStack(canvas);
         }
+        // TODO: Use undo icon instead
+        canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
     }
 
     private boolean distributeNewCards() {
@@ -131,14 +145,23 @@ public class Master {
          * @return true if cards were distributed;
          *      false if no un-played cards left.
          */
+        HistoryObject move = new HistoryObject();
         Card currentCard = movingStack.head;
         Card nextCard;
         for (int i=0; i<8; ++i) {
             nextCard = currentCard.next;  // Save next card
             currentCard.next = null;
-            stacks[i].addCard(currentCard);
+            Stack completedStack = stacks[i].addCard(currentCard);
+            if (completedStack != null) {
+                // Completed stack was created
+                stacks[9].addStack(completedStack);
+                // Record which stack was completed in history
+                move.completedStackIds.add(i);
+            }
             currentCard = nextCard;
         }
+        move.recordMove(movingStack.head, 8, -3);
+        history.add(0, move);
         movingStack = null;
         // NOTE: return false because cards are not in motion
         return false;
@@ -165,7 +188,8 @@ public class Master {
                     return distributeNewCards();
                 } else {
                     // Legal move initiated, store coords to check for tap (no click & drag)
-                    movingStack.assignPosition((int) x, (int) y, cardWidth);
+                    movingStack.assignPosition(x, y);
+                    //movingStack.assignPosition((int) x, (int) y, cardWidth);
                     originalStack = stack.stackId;
                     tappedX = x;
                     tappedY = y;
@@ -188,7 +212,7 @@ public class Master {
          * This is only called when cards are in motion and touch released
          * Checks if valid drop
          * Updates moving cards (adds to new stack or reverts to original stack)
-         * @return True if game was won, False otherwise
+         * @return true if game was won; false otherwise
          */
         // Check if screen was tapped
         boolean tapped = false;
@@ -233,19 +257,80 @@ public class Master {
         }
         // Add moving stack to right stack
         Stack completedStack = stacks[addTo].addStack(movingStack);
+
         // Move completed stack to stacks[9] if full stack was made
         if (completedStack != null) {
             stacks[9].addStack(completedStack);
             Log.e(TAG, "Length completed stack:" + stacks[9].numCards);
             if (stacks[9].numCards == 52) {
+                // TODO: Ensure below line fixes glitch of showing
+                //  all the cards in the moving stack when game is won
+                movingStack = null;
                 return true;
             }
         }
-        // Flip over newly revealed card
+        // Check if a legal move occurred
         if (addTo != originalStack) {
-            stacks[originalStack].flipBottomCard();
+            // Record the move
+            HistoryObject move = new HistoryObject();
+            move.recordMove(movingStack.head, originalStack, addTo);
+            if (completedStack != null) {
+                move.completedStackIds.add(addTo);
+            }
+            // Flip over newly revealed card
+            boolean cardFlipped = stacks[originalStack].flipBottomCard();
+            move.cardRevealed = cardFlipped;
+            history.add(0, move);
+            Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.head.cardsBelow());
         }
         movingStack = null;
         return false;
     }
+
+    public boolean undo() {
+        /**
+         * Un-does a move when undo is clicked
+         */
+        Log.e(TAG, "Len history:" + history.size());
+        if (history.size() == 0) {
+            // TODO: Flash message ("Nothing to Undo")
+            return false;
+        }
+        HistoryObject move = history.remove(0);
+        // First, revert stacks that were completed (if any)
+        for (int i=0; i<move.completedStackIds.size(); ++i) {
+            int stackId = move.completedStackIds.get(i);
+            Log.e(TAG, "restoring stack:" + stackId);
+            // remove bottom 13 cards from completed stack
+            Stack newStack = stacks[9].removeStack(13);
+            // add back to original stack
+            stacks[stackId].replaceStack(newStack);
+        }
+        if (move.originalStack != 8) {
+            // Remove moved stack from the destination
+            int stackLength = move.head.cardsBelow();
+            Stack origStack = stacks[move.newStack].removeStack(stackLength);
+            // Re-hide revealed card on original stack
+            if (move.cardRevealed) {
+                stacks[move.originalStack].head.bottomCard().hidden = true;
+            }
+            // Add back to original stack
+            stacks[move.originalStack].addStack(origStack);
+        }
+        else {
+            // Undo distribute cards
+            Card head = stacks[0].removeBottomCard();
+            // Remove bottom card from all playing stacks
+            Card next = head;
+            for (int i=1; i<8; ++i) {
+                next.next = stacks[i].removeBottomCard();
+                next = next.next;
+            }
+            // Add cards back to un-played stack
+            Stack replaceStack = new Stack(-3, head);
+            stacks[8].addStack(replaceStack);
+        }
+        return true;
+    }
+
 }

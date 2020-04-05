@@ -88,6 +88,12 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
                         // TODO: Stop clock, go to game won screen, show stats
                         Log.e(TAG, "You win!");
                     }
+                } else {
+                    // Check if undo button was touched.
+                    if ((x < 120) && (y > (master.screenHeight-100))) {
+                        Log.e(TAG, "Undo clicked!");
+                        master.undo();
+                    }
                 }
                 break;
             case MotionEvent.ACTION_CANCEL:
