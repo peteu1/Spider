@@ -1,15 +1,11 @@
-package com.example.peter.spider.Game;
+package com.example.peter.spider.Game.CardDeck;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
 
-import com.example.peter.spider.Game.CardDeck.Card;
-
-import java.util.ArrayList;
-
-class Stack {
+public class Stack {
     /**
      * There will be 10 stored instances of this class:
      *      1 for each of the 8 card slots (numbered 0 [left] to 7 [right])
@@ -17,46 +13,30 @@ class Stack {
      *      1 for solved cards
      * Then another temporary instance used for moving cards
      */
+    // Constants
     private static final String TAG = "Stack";
     private static final int VERTICAL_CARD_SPACING = 40;
-    // Game properties
-    int stackId;
-    //ArrayList<Card> cards;
-    Card head; // This will be the first node in the stack, w/ pointer to next
-
-    // Location/motion properties
-    int left;  // The left (X) coordinate of the stack in the canvas
-    int top;  // NOTE: These are constant (except for moving stack)
-    int cardWidth;
-    int cardHeight;
-    int stackHeight = 0;
-    int numCards = 0;
-    boolean moving;  // true if the card is currently being moved
+    // Stack properties
+    public int stackId;
     Paint holderColor;
+    // Size/location properties
+    public int left, top;  // X/Y canvas coordinates
+    private int cardWidth, cardHeight, stackHeight, numCards;
+    // Game properties
+    public Card head; // This will be the first node in the stack, w/ pointer to next
+    boolean moving;  // true if the card is currently being moved
 
     public Stack(int stackId, Card head) {
         this.stackId = stackId;
         this.head = head;
-        this.left = 0;
-        this.top = 0;
-        holderColor = new Paint();
-        holderColor.setColor(Color.rgb(150,150,150));
+        left = 0;
+        top = 0;
+        initPaints();
     }
 
-    public void computeHeight() {
-        // Re-compute stack height
-        if (head == null) {
-            this.numCards = 0;
-            stackHeight = cardHeight;
-        } else {
-            this.numCards = head.cardsBelow();
-            if (stackId < 8) {
-                stackHeight = ((this.numCards-1)*VERTICAL_CARD_SPACING)+cardHeight;
-            } else {
-                // Completed and un-played card stacks have cards on top of each other
-                stackHeight = cardHeight;
-            }
-        }
+    private void initPaints() {
+        holderColor = new Paint();
+        holderColor.setColor(Color.rgb(150,150,150));
     }
 
     public void assignPosition(int left, int top, int cardWidth) {
@@ -91,16 +71,6 @@ class Stack {
         top = (int) y - stackHeight;
     }
 
-    public boolean flipBottomCard() {
-        /**
-         * Turns over (un-hides) the bottom card in the stack
-         */
-        if (head != null) {
-            return head.bottomCard().unhide();
-        }
-        return false;
-    }
-
     public void drawStack(Canvas canvas) {
         /**
          * Tells each card where to draw itself
@@ -133,8 +103,7 @@ class Stack {
             }
         }
         else {
-            // Draw completed stacks
-            // Draw every 13th card in stack, then shift right
+            // Draw completed stacks (every 13th card, then shift right)
             int numStacks = numCards / 13;
             if (numStacks > 0) {
                 Card c = head;
@@ -154,6 +123,54 @@ class Stack {
             }
         }
     }
+
+    /**************************************************
+     * Various helper methods
+     **************************************************/
+
+    private void computeHeight() {
+        // Re-compute stack height and number of cards
+        if (head == null) {
+            this.numCards = 0;
+            stackHeight = cardHeight;
+        } else {
+            this.numCards = head.cardsBelow();
+            if (stackId < 8) {
+                stackHeight = ((this.numCards-1)*VERTICAL_CARD_SPACING)+cardHeight;
+            } else {
+                // Completed and un-played card stacks have cards on top of each other
+                stackHeight = cardHeight;
+            }
+        }
+    }
+
+    public int getNumCards() {
+        return this.numCards;
+    }
+
+    public boolean flipBottomCard() {
+        /**
+         * Turns over (un-hides) the bottom card in the stack
+         */
+        if (head != null) {
+            return head.bottomCard().unhide();
+        }
+        return false;
+    }
+
+    private Card getLastCard() {
+        /**
+         * Returns the bottom card in this stack, null if stack is empty
+         */
+        if (head == null) {
+            return null;
+        }
+        return head.bottomCard();
+    }
+
+    /**************************************************
+     * Game logic methods
+     **************************************************/
 
     public Stack touchContained(float x, float y) {
         /**
@@ -242,16 +259,6 @@ class Stack {
         return null;
     }
 
-    private Card getLastCard() {
-        /**
-         * Returns the bottom card in this stack, null if stack is empty
-         */
-        if (head == null) {
-            return null;
-        }
-        return head.bottomCard();
-    }
-
     public int legalDrop(float x, float y, int topCardValue) {
         /**
          * Checks if a stack was dropped on this stack, and whether the move
@@ -261,33 +268,45 @@ class Stack {
          */
         if (x > left && x < (left + cardWidth)) {
             // Dropped on this stack
-            int canDrop = this.legalDrop(topCardValue);
-            if (canDrop == 1) {
-                return 1;
+            if (head == null) {
+                return 1;  // Empty stack -> legal placement
             }
-            // Right stack, illegal placement
-            return 0;
+            if (head.bottomCard().canPlace(topCardValue)) {
+                return 1;  // Legal placement
+            }
+            return 0;  // Right stack, illegal placement
         }
-        return -1;
+        return -1;  // Did not land here
     }
 
-    public int legalDrop(int topCardValue) {
+    public int rateDrop(Card topCard) {
         /**
-         * This is called directly from Master when the screen is tapped.
-         * Returns 1 if legal, -1 if not legal
+         * When screen tapped, checks if drop on this stack is legal and rates
+         *  how good the move would be.
+         * @param topCard is the top card in the moving stack.
+         * @return rating, higher number means better move:
+         *         0 ~ illegal placement
+         *         1 ~ empty space
+         *         2 ~ correct number
+         *         3 ~ correct number & suit
          */
         if (head == null) {
-            // Empty stack -> legal placement
-            return 1;
+            return 1;  // Empty space
         }
         Card bottomCard = head.bottomCard();
-        if (bottomCard.canPlace(topCardValue)) {
+        if (bottomCard.canPlace(topCard.cardValue)) {
             // Legal placement
-            return 1;
+            if (bottomCard.cardSuit == topCard.cardSuit) {
+                return 3;  // Correct number & suit
+            }
+            return 2;  // Correct number
         }
-        // Illegal placement
-        return -1;
+        return 0;  // Illegal placement
     }
+
+    /**************************************************
+     * Card adding/removing methods
+     **************************************************/
 
     public Stack getFullStack() {
         /**
@@ -366,9 +385,7 @@ class Stack {
     }
 
     public Stack addCard(Card card) {
-        /**
-         * Adds a single card (when new cards are drawn)
-         */
+        // Adds a single card (when new cards are drawn) to end of stack
         card.unhide();
         Stack newStack = new Stack(-3, card);
         return this.addStack(newStack);
@@ -398,15 +415,7 @@ class Stack {
     }
 
     public Card removeBottomCard() {
-        /**
-         * When undo-ing a distribute cards move, grab last card
-         */
-//        Card c = head.bottomCard();
-//        Card returnCard = c;
-//        c = null;
-//        returnCard.hidden = false;
-//        return returnCard;
-
+        // When undo-ing a distribute cards move, grab last card
         Card prev = head;
         Card returnCard;
         if (prev.next == null) {
