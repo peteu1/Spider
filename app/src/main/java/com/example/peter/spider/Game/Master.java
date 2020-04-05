@@ -7,6 +7,8 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 
 import com.example.peter.spider.Game.CardDeck.Card;
+import com.example.peter.spider.Game.CardDeck.Deck;
+import com.example.peter.spider.Game.CardDeck.Stack;
 
 import java.util.ArrayList;
 
@@ -16,44 +18,50 @@ public class Master {
      * It holds the list of Stacks, and passes stack objects to the game masters to
      *  be the main dictator between actions received and updates to the game
      */
-    // TODO: class to store history stack movement so that undo can work
 
     private static final String TAG = "Master";
     public int difficulty;
-    private Paint textPaint;
-    private ArrayList<HistoryObject> history;
-
-    private static final int DECK_SIZE = 52;
-    private static final int NUM_STACKS = 10;
-    public Card[] deck;
-    // This is the top of completed and un-played stacks
-    private static final int NON_PLAYING_STACK_Y = 50;
-    public int screenWidth, screenHeight, stackWidth, cardWidth;
     public Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
+    private ArrayList<HistoryObject> history;
+    private Paint textPaint;
+
+    // Top of completed and un-played stacks
+    private static final int NON_PLAYING_STACK_Y = 50;
+    private static final int STACK_SPACING = 5;  // spacing between stacks
+    // Left/right margins: 0.05 screen width
+    private static final double EDGE_MARGIN = 0.05;
+    public int screenWidth, screenHeight, stackWidth, cardWidth;
+    private float tappedX, tappedY;  // Store initial touch coords to see if screen was tapped
+
     // The following are used to track a moving stack
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
-    private float tappedX, tappedY;  // Store initial touch coords to see if screen was tapped
 
     public Master(DisplayMetrics displayMetrics, int difficulty) {
         this.difficulty = difficulty;
+        Deck deck = new Deck(difficulty);
+        stacks = deck.dealStacks();
+        history = new ArrayList<HistoryObject>();
+        initPaints();
+        screenWidth = displayMetrics.widthPixels;
+        screenHeight = displayMetrics.heightPixels;
+        stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
+        cardWidth = stackWidth - STACK_SPACING;
+        arrangeStacks();
+    }
+
+    private void initPaints() {
         textPaint = new Paint();
         textPaint.setColor(Color.rgb(30,30,30));
         textPaint.setTextSize(30);
-        history = new ArrayList<HistoryObject>();
-        deck = shuffleDeck();
-        stacks = dealStacks();
-        screenWidth = displayMetrics.widthPixels;
-        screenHeight = displayMetrics.heightPixels;
-        // Left/right margins: 0.05 screen width
-        stackWidth = (int) ((0.9 * screenWidth) / 8);
-        // spacing between stacks: 5 px
-        cardWidth = stackWidth - 5;
-        // Playing stacks start 30 pixels below non-playing stacks
+    }
+
+    private void arrangeStacks() {
         int cardHeight = (int) (cardWidth * 1.5);
+        // Playing stacks start 30 pixels below non-playing stacks
         int stackTop = NON_PLAYING_STACK_Y + cardHeight + 30;
         // Assign location to each of the stacks
-        double stackLeft = 0.05*screenWidth;
+        double stackLeft = EDGE_MARGIN * screenWidth;
         for (int j=0; j<8; ++j) {
             Stack stack = stacks[j];
             stack.assignPosition((int) stackLeft, stackTop, cardWidth);
@@ -62,65 +70,6 @@ public class Master {
         // Initiate un-played cards and stack locations
         stacks[8].assignPosition((int) (0.8*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
         stacks[9].assignPosition((int) (0.1*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
-    }
-
-    private Card[] shuffleDeck() {
-        // Create ordered deck with every unique card
-        Card[] rawDeck = new Card[DECK_SIZE];
-        int cardNum = 0;
-        for (int i=1; i<=4; ++i) {
-            int suit = ((i-1)%difficulty)+1;
-            Log.e(TAG, "i, suit: " + String.valueOf(i) + ", " + String.valueOf(suit));
-            for (int cardVal=1; cardVal<=13; ++cardVal) {
-                rawDeck[cardNum] = new Card(suit, cardVal);
-                ++cardNum;
-            }
-        }
-        Card[] shuffledDeck = rawDeck;
-        // TODO: Shuffle the cards (wait until after test winning games, etc.)
-        return shuffledDeck;
-    }
-
-    public Stack[] dealStacks() {
-        /**
-         * Initialize the 10 stacks with cards:
-         *  - Distribute cards 0-27 to the in-play stacks (0 through 7)
-         *      - Stack 0 gets 0 cards, stack 1 gets 1... stack 7 gets 7
-         *  - Stack 8 (un-played cards) gets the remaining 24 cards
-         *  - Stack 9 (completed cards) is initialized with 0 cards
-         */
-        Stack[] stacks = new Stack[NUM_STACKS];
-        // Empty stack in-play
-        stacks[0] = new Stack(0, null);
-        int cardNum = 0;
-        // Loop through stacks 2 -> 7
-        for (int j=1; j<8; ++j) {
-            // Get first card
-            Card head = deck[cardNum];
-            cardNum++;
-            Card next = head;
-            //ArrayList<Card> cards = new ArrayList<Card>();
-            for (int i=1; i<j; ++i) {
-                // Set pointer to next card in stack
-                next.next = deck[cardNum];
-                next = deck[cardNum];
-                cardNum++;
-            }
-            // Unhide top card
-            deck[cardNum-1].unhide();
-            stacks[j] = new Stack(j, head);
-        }
-        // Add remaining cards to unplayed stack
-        Card remainingHead = deck[cardNum];
-        Card next = remainingHead;
-        for (int i=cardNum; i < DECK_SIZE; ++i) {
-            next.next = deck[i];
-            next = deck[i];
-        }
-        stacks[8] = new Stack(8, remainingHead);
-        // Initialize complete stack
-        stacks[9] = new Stack(9, null);
-        return stacks;
     }
 
     public void draw(Canvas canvas) {
@@ -136,35 +85,6 @@ public class Master {
         }
         // TODO: Use undo icon instead
         canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
-    }
-
-    private boolean distributeNewCards() {
-        /**
-         * When a new set of cards is clicked in the top-right, 8 un-played
-         *  cards are taken and distributed: 1 to each of the in-play stacks.
-         * @return true if cards were distributed;
-         *      false if no un-played cards left.
-         */
-        HistoryObject move = new HistoryObject();
-        Card currentCard = movingStack.head;
-        Card nextCard;
-        for (int i=0; i<8; ++i) {
-            nextCard = currentCard.next;  // Save next card
-            currentCard.next = null;
-            Stack completedStack = stacks[i].addCard(currentCard);
-            if (completedStack != null) {
-                // Completed stack was created
-                stacks[9].addStack(completedStack);
-                // Record which stack was completed in history
-                move.completedStackIds.add(i);
-            }
-            currentCard = nextCard;
-        }
-        move.recordMove(movingStack.head, 8, -3);
-        history.add(0, move);
-        movingStack = null;
-        // NOTE: return false because cards are not in motion
-        return false;
     }
 
     public boolean legalTouch(float x, float y) {
@@ -207,6 +127,32 @@ public class Master {
         }
     }
 
+    private int processTap() {
+        /**
+         * Called when the screen is tapped. Finds the best stack
+         *  for current movingStack to move to.
+         * @return the ID of the stack to add current moving stack to
+         */
+        int bestStack = -1;
+        int bestRating = 0;
+        Card topCard = movingStack.head;
+        for (int j=0; j<8; ++j) {
+            if (j != originalStack) {
+                Stack stack = stacks[j];
+                int rating = stack.rateDrop(topCard);
+                if (rating > bestRating) {
+                    bestStack = j;
+                    bestRating = rating;
+                }
+            }
+        }
+        if (bestStack >= 0) {
+            return bestStack;
+        } else {
+            return originalStack;
+        }
+    }
+
     public boolean endStackMotion(float x, float y) {
         /**
          * This is only called when cards are in motion and touch released
@@ -214,68 +160,59 @@ public class Master {
          * Updates moving cards (adds to new stack or reverts to original stack)
          * @return true if game was won; false otherwise
          */
-        // Check if screen was tapped
-        boolean tapped = false;
-        if (x == tappedX && y == tappedY) {
-            tapped = true;
-        }
-        // TODO: New logic for a tap, find best stack to move to (if any)
-        int legal = -1;
         int addTo = originalStack;  // Indicates which stack id to add moving stack to
-        x = movingStack.left + ((int) (0.25*stackWidth));
-        y = movingStack.top;
-        int topCardValue = movingStack.head.cardValue;
-        // Find which stack it landed on, and whether move is valid
-        for (int j=0; j<8; ++j) {
-            Stack stack = stacks[j];
-            if (tapped) {
-                legal = stack.legalDrop(topCardValue);
-            } else {
+        // Check if screen was tapped
+        if (x == tappedX && y == tappedY) {
+            addTo = processTap();
+        } else {
+            // Screen was clicked and dragged
+            int legal = -1;
+            x = movingStack.left + ((int) (0.25*stackWidth));
+            y = movingStack.top;
+            int topCardValue = movingStack.head.cardValue;
+            // Find which stack it landed on, and whether move is valid
+            for (int j=0; j<8; ++j) {
+                Stack stack = stacks[j];
                 legal = stack.legalDrop(x, y, topCardValue);
-            }
-            // Lock into place if legal move, else go back to initial location
-            // -1: wrong stack; 0: right stack, illegal; 1: legal drop
-            if (legal == 1) {
-                if (!tapped) {
+                // Lock into place if legal move, else go back to initial location
+                // -1: wrong stack; 0: right stack, illegal; 1: legal drop
+                if (legal == 1) {
                     // Add moving stack to current stack
                     addTo = j;
                     j = 8;  // break loop
                 }
-                else {
-                    // If tapped, only add tapped stack to different stack
-                    if (j != originalStack) {
-                        addTo = j;
-                        j = 8;  // break loop
-                    }
+                else if (legal == 0) {
+                    // Illegal placement: restore moving stack to original stack
+                    j = 8;  // break loop
                 }
+                // else, didn't land here, keep looping
             }
-            else if (legal == 0) {
-                // Illegal placement: restore moving stack to original stack
-                j = 8;  // break loop
-            }
-            // else, didn't land here, keep looping
         }
-        // Add moving stack to right stack
-        Stack completedStack = stacks[addTo].addStack(movingStack);
+        return updateStacks(addTo);
+    }
 
+    private boolean updateStacks(int newStackIdx) {
+        /**
+         * Called after finger is released (endStackMotion). \
+         * The current moving stack is added to the specified stack and
+         *  history is recorded.
+         */
+        Stack completedStack = stacks[newStackIdx].addStack(movingStack);
         // Move completed stack to stacks[9] if full stack was made
         if (completedStack != null) {
             stacks[9].addStack(completedStack);
-            Log.e(TAG, "Length completed stack:" + stacks[9].numCards);
-            if (stacks[9].numCards == 52) {
-                // TODO: Ensure below line fixes glitch of showing
-                //  all the cards in the moving stack when game is won
+            if (stacks[9].getNumCards() == 52) {
                 movingStack = null;
                 return true;
             }
         }
         // Check if a legal move occurred
-        if (addTo != originalStack) {
+        if (newStackIdx != originalStack) {
             // Record the move
             HistoryObject move = new HistoryObject();
-            move.recordMove(movingStack.head, originalStack, addTo);
+            move.recordMove(movingStack.head, originalStack, newStackIdx);
             if (completedStack != null) {
-                move.completedStackIds.add(addTo);
+                move.completedStackIds.add(newStackIdx);
             }
             // Flip over newly revealed card
             boolean cardFlipped = stacks[originalStack].flipBottomCard();
@@ -284,6 +221,35 @@ public class Master {
             Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.head.cardsBelow());
         }
         movingStack = null;
+        return false;
+    }
+
+    private boolean distributeNewCards() {
+        /**
+         * When a new set of cards is clicked in the top-right, 8 un-played
+         *  cards are taken and distributed: 1 to each of the in-play stacks.
+         * @return true if cards were distributed;
+         *      false if no un-played cards left.
+         */
+        HistoryObject move = new HistoryObject();
+        Card currentCard = movingStack.head;
+        Card nextCard;
+        for (int i=0; i<8; ++i) {
+            nextCard = currentCard.next;  // Save next card
+            currentCard.next = null;
+            Stack completedStack = stacks[i].addCard(currentCard);
+            if (completedStack != null) {
+                // Completed stack was created
+                stacks[9].addStack(completedStack);
+                // Record which stack was completed in history
+                move.completedStackIds.add(i);
+            }
+            currentCard = nextCard;
+        }
+        move.recordMove(movingStack.head, 8, -3);
+        history.add(0, move);
+        movingStack = null;
+        // NOTE: return false because cards are not in motion
         return false;
     }
 
@@ -332,5 +298,4 @@ public class Master {
         }
         return true;
     }
-
 }
