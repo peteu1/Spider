@@ -150,7 +150,6 @@ class Stack {
                 // The stack was touched, collect stack of cards touched
                 if (stackId == 8) {
                     // Return next 8 cards if new cards (top-right) touched
-                    Log.e("STACK", "numCard:" + numCards);
                     // Get the card 8th from last (24 un-played cards initially)
                     Stack returnStack;
                     if (numCards == 8) {

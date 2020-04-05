@@ -34,7 +34,6 @@ public class Master {
         this.difficulty = difficulty;
         deck = shuffleDeck();
         stacks = dealStacks();
-        Log.e(TAG, "Configuring heights");
         screenWidth = displayMetrics.widthPixels;
         screenHeight = displayMetrics.heightPixels;
         // Margin = 0.05 screen width (for left & right)
@@ -43,18 +42,14 @@ public class Master {
         cardWidth = stackWidth - 5;
         // Assign location to each of the stacks
         double stackLeft = 0.05*screenWidth;
-        Log.e(TAG, "Assigning stack positions...");
         for (int j=0; j<8; ++j) {
             Stack stack = stacks[j];
             stack.assignPosition((int) stackLeft, DEFAULT_STACK_Y, cardWidth);
             stackLeft += stackWidth;
         }
-        Log.e(TAG, "Telling un-played cards where to go...");
         // Initiate un-played cards and stack locations
         stacks[8].assignPosition((int) (0.8*screenWidth), 50, cardWidth);
-        Log.e(TAG, "Positioning finished card stack");
         stacks[9].assignPosition((int) (0.1*screenWidth), 50, cardWidth);
-        Log.e(TAG, "Len stack 3: " + stacks[3].numCards);
     }
 
     private Card[] shuffleDeck() {
@@ -70,8 +65,7 @@ public class Master {
             }
         }
         Card[] shuffledDeck = rawDeck;
-        Log.e(TAG, "First Card:" + shuffledDeck[0].cardValue);
-        // TODO: Shuffle the cards
+        // TODO: Shuffle the cards (wait until after test winning games, etc.)
         return shuffledDeck;
     }
 
@@ -130,6 +124,26 @@ public class Master {
         }
     }
 
+    private boolean distributeNewCards() {
+        /**
+         * When a new set of cards is clicked in the top-right, 8 un-played
+         *  cards are taken and distributed: 1 to each of the in-play stacks.
+         * @return true if cards were distributed;
+         *      false if no un-played cards left.
+         */
+        Card currentCard = movingStack.head;
+        Card nextCard;
+        for (int i=0; i<8; ++i) {
+            nextCard = currentCard.next;  // Save next card
+            currentCard.next = null;
+            stacks[i].addCard(currentCard);
+            currentCard = nextCard;
+        }
+        movingStack = null;
+        // NOTE: return false because cards are not in motion
+        return false;
+    }
+
     public boolean legalTouch(float x, float y) {
         /**
          * - Gets called when the screen is touched
@@ -162,26 +176,6 @@ public class Master {
         return false;
     }
 
-    private boolean distributeNewCards() {
-        /**
-         * When a new set of cards is clicked in the top-right, 8 un-played
-         *  cards are taken and distributed: 1 to each of the in-play stacks.
-         * @return true if cards were distributed;
-         *      false if no un-played cards left.
-         */
-        Card currentCard = movingStack.head;
-        Card nextCard;
-        for (int i=0; i<8; ++i) {
-            nextCard = currentCard.next;  // Save next card
-            currentCard.next = null;
-            stacks[i].addCard(currentCard);
-            currentCard = nextCard;
-        }
-        movingStack = null;
-        // NOTE: return false because cards are not in motion
-        return false;
-    }
-
     public void moveStack(float x, float y) {
         // Updates position of moving stack while dragging finger
         if (movingStack != null) {
@@ -201,6 +195,7 @@ public class Master {
         if (x == tappedX && y == tappedY) {
             tapped = true;
         }
+        // TODO: New logic for a tap, find best stack to move to (if any)
         int legal = -1;
         int addTo = originalStack;  // Indicates which stack id to add moving stack to
         x = movingStack.left + ((int) (0.25*stackWidth));
