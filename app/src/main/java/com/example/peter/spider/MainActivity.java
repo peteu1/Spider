@@ -12,15 +12,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private Button easy, medium, hard, expert;
 
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-//                WindowManager.LayoutParams.FLAG_FULLSCREEN);  // Make full screen
-//        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-//        setContentView(new GameView(this));
-//    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // Launches the Menu screen
@@ -62,5 +53,5 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-    // TODO: retain data on Pause() and when app killed
+    // TODO: retain data on Pause() and when app is killed
 }
