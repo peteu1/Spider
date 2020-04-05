@@ -12,8 +12,7 @@ public class HistoryObject {
     boolean cardRevealed;
     int originalStack, newStack;
     Card head;
-    // This is to store stacks that got completed
-    ArrayList<Integer> completedStackIds;
+    ArrayList<Integer> completedStackIds;  // Store stack IDs that got completed
 
     public HistoryObject() {
         cardRevealed = false;
@@ -34,7 +33,4 @@ public class HistoryObject {
         this.originalStack = from;
         this.newStack = to;
     }
-
-
-
 }
