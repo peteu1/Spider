@@ -51,20 +51,19 @@ public class Card {
     }
 
     private String displaySuit() {
-        // TODO: Suits are all appearing as "C"... 4?
         // TODO: get symbols
-        String suit = "X";
         switch (cardSuit) {
             case 1:
-                suit = "S";
+                return "S";
             case 2:
-                suit = "H";
+                return "H";
             case 3:
-                suit = "D";
+                return "D";
             case 4:
-                suit = "C";
+                return "C";
+            default:
+                return "X";
         }
-        return suit;
     }
 
     public void setSize(int w, int h) {
@@ -72,9 +71,16 @@ public class Card {
         height = h;
     }
 
-    public void unhide() {
-        // Makes cards value and suit visible
+    public boolean unhide() {
+        /**
+         * Makes cards value and suit visible
+         * @return true if card had been hidden; false if already visible
+         */
+        if (!hidden) {
+            return false;
+        }
         hidden = false;
+        return true;
     }
 
     public boolean canPlace(int otherVal) {
