@@ -3,6 +3,7 @@ package com.example.peter.spider.Game;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class HistoryTracker {
 
@@ -11,14 +12,30 @@ public class HistoryTracker {
 
     private int numMoves = 0;
     private boolean lastActionRemove = false;
+    private long startMillis;
+    private long elapsedMillis;
 
     public HistoryTracker() {
         history = new ArrayList<HistoryObject>();
+        long startMillis = System.currentTimeMillis();
+        elapsedMillis = 0;
+        // TODO: Fix time so that there's start and end to get current.
+        // Add current to elapsed, onPause and such, store elapsed
+        // OnResume, restart startMillis
+        // OnPause, update elapsedMillis
     }
 
     public int getNumMoves() {
         return numMoves;
     }
+
+    // TODO: Get time elapsed
+//    public String timeElapsed() {
+//        long millis = System.currentTimeMillis();
+//        long elapsedMillis = millis - startMillis;
+//        long minutes = TimeUnit.MILLISECONDS.toMinutes(millis);
+//        long seconds = TimeUnit.MILLISECONDS.toSeconds(millis);
+//    }
 
     public void record(HistoryObject move) {
         // Prepend move to beginning of history list
@@ -44,5 +61,4 @@ public class HistoryTracker {
         lastActionRemove = true;
         return history.remove(0);
     }
-
 }
