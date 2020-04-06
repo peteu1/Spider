@@ -3,6 +3,9 @@ package com.example.peter.spider.Game.CardDeck;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
+
+import com.example.peter.spider.R;
 
 public class Card {
     /**
@@ -110,7 +113,13 @@ public class Card {
     public void draw(Canvas canvas, int left, int top) {
         // Draws the card on the canvas
         if (this.hidden) {
+            // TODO: Draw card back (mipmap.card_back [png], better way to do this?)
+//            Drawable d = getResources().getDrawable(R.mipmap.card_back, null);
+//            d.setBounds(left, top, left+width, top+height);
+//            d.draw(canvas);
             canvas.drawRect(left, top, left+width, top+height, hiddenColor);
+            // draw card left border (TODO: Remove after implement card back)
+            canvas.drawRect(left, top, left+2, top+height, blockColor);
         } else {
             canvas.drawRect(left, top, left+width, top+height, blockColor);
             canvas.drawText(value, left+5, top+11, textPaint);
