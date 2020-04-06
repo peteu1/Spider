@@ -12,6 +12,7 @@ New features needed:
 - Timer
 - Count moves
 - Score
+- Update rules and add option to show rules from main screen and within gameView
 - Hints
 - MainActivity.onPause(): save state
 - MainActivity.onResume(): restore saved data
@@ -19,3 +20,20 @@ New features needed:
 - Animations for: draw new cards (card moving to each stack), single tap of screen (card moving from stack to stack), completed stack (going up to top left)
 - Visual response to illegal single tap
 - Database to track stats
+
+
+-- Rules --
+How to Play:
+- blah blah
+
+Scoring:
+- TBD
+- Time into the game is the multiplier
+- Actions have their own points
+	- Completed stack = a lot
+	- Revealing hidden card = a little
+
+Move count:
+- Every move adds one to the move count.
+- Undo removes one move from the count.
+- Consecutive undo's will not further reduce the move count.
