@@ -10,7 +10,6 @@ Considerations:
 
 New features needed:
 - Timer
-- Count moves
 - Score
 - Update rules and add option to show rules from main screen and within gameView
 - Hints
