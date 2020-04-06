@@ -1,8 +1,10 @@
 package com.example.peter.spider.Game;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
@@ -11,6 +13,7 @@ import com.example.peter.spider.Game.CardDeck.Deck;
 import com.example.peter.spider.Game.CardDeck.Stack;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Master {
     /**
@@ -37,9 +40,9 @@ public class Master {
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
 
-    public Master(DisplayMetrics displayMetrics, int difficulty) {
+    public Master(DisplayMetrics displayMetrics, int difficulty, HashMap<Integer, Drawable> mStore) {
         this.difficulty = difficulty;
-        Deck deck = new Deck(difficulty);
+        Deck deck = new Deck(difficulty, mStore);
         stacks = deck.dealStacks();
         historyTracker = new HistoryTracker();
         initPaints();
@@ -81,11 +84,14 @@ public class Master {
             stack.drawStack(canvas);
         }
         if (movingStack != null) {
+            // NOTE: Draw moving stack last so that it's on top
             movingStack.drawStack(canvas);
         }
         // Draw move count
         String moves = String.valueOf(historyTracker.getNumMoves());
         canvas.drawText("Moves: " + moves, 15, textPaint.getTextSize()+5, textPaint);
+        // Draw menu "button" (TODO: Properly center text)
+        canvas.drawText("Menu", (int) (screenWidth/2)-25, textPaint.getTextSize()+5, textPaint);
         // TODO: Use undo icon instead
         canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
         // TODO: Draw time
