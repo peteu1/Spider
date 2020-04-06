@@ -22,7 +22,7 @@ public class Master {
     private static final String TAG = "Master";
     public int difficulty;
     public Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
-    private ArrayList<HistoryObject> history;
+    private HistoryTracker historyTracker;
     private Paint textPaint;
 
     // Top of completed and un-played stacks
@@ -41,7 +41,7 @@ public class Master {
         this.difficulty = difficulty;
         Deck deck = new Deck(difficulty);
         stacks = deck.dealStacks();
-        history = new ArrayList<HistoryObject>();
+        historyTracker = new HistoryTracker();
         initPaints();
         screenWidth = displayMetrics.widthPixels;
         screenHeight = displayMetrics.heightPixels;
@@ -83,6 +83,9 @@ public class Master {
         if (movingStack != null) {
             movingStack.drawStack(canvas);
         }
+        // Draw move count
+        String moves = String.valueOf(historyTracker.getNumMoves());
+        canvas.drawText("Moves: " + moves, 15, textPaint.getTextSize()+5, textPaint);
         // TODO: Use undo icon instead
         canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
     }
@@ -217,7 +220,7 @@ public class Master {
             // Flip over newly revealed card
             boolean cardFlipped = stacks[originalStack].flipBottomCard();
             move.cardRevealed = cardFlipped;
-            history.add(0, move);
+            historyTracker.record(move);
             Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.head.cardsBelow());
         }
         movingStack = null;
@@ -247,7 +250,7 @@ public class Master {
             currentCard = nextCard;
         }
         move.recordMove(movingStack.head, 8, -3);
-        history.add(0, move);
+        historyTracker.record(move);
         movingStack = null;
         // NOTE: return false because cards are not in motion
         return false;
@@ -257,12 +260,11 @@ public class Master {
         /**
          * Un-does a move when undo is clicked
          */
-        Log.e(TAG, "Len history:" + history.size());
-        if (history.size() == 0) {
+        if (historyTracker.isEmpty()) {
             // TODO: Flash message ("Nothing to Undo")
             return false;
         }
-        HistoryObject move = history.remove(0);
+        HistoryObject move = historyTracker.pop();
         // First, revert stacks that were completed (if any)
         for (int i=0; i<move.completedStackIds.size(); ++i) {
             int stackId = move.completedStackIds.get(i);
