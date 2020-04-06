@@ -1,24 +1,34 @@
 package com.example.peter.spider.Game.CardDeck;
 
+import android.graphics.drawable.Drawable;
 import android.util.Log;
+
+import com.example.peter.spider.R;
+
+import java.util.HashMap;
 
 public class Deck {
 
+    private static final String TAG = "DECK";
     private static final int DECK_SIZE = 52, NUM_STACKS = 10;
     private Card[] deck;
+    private HashMap<Integer, Drawable> mStore;
 
-    public Deck(int difficulty) {
-        deck = shuffleDeck(difficulty);
+    public Deck(int difficulty, HashMap<Integer, Drawable> mStore) {
+        this.mStore = mStore;
+        deck = createDeck(difficulty);
     }
 
-    private Card[] shuffleDeck(int difficulty) {
+    private Card[] createDeck(int difficulty) {
         // Create ordered deck with every unique card
         Card[] rawDeck = new Card[DECK_SIZE];
+        Drawable cardBack = mStore.get(R.id.card_back);
         int cardNum = 0;
         for (int i=1; i<=4; ++i) {
             int suit = ((i-1)%difficulty)+1;
+            // TODO: Get current suit from mStore
             for (int cardVal=1; cardVal<=13; ++cardVal) {
-                rawDeck[cardNum] = new Card(suit, cardVal);
+                rawDeck[cardNum] = new Card(suit, cardVal, cardBack);
                 ++cardNum;
             }
         }

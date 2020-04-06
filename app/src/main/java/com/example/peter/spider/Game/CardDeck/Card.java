@@ -1,11 +1,14 @@
 package com.example.peter.spider.Game.CardDeck;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 
 import com.example.peter.spider.R;
+
+import java.util.HashMap;
 
 public class Card {
     /**
@@ -19,16 +22,18 @@ public class Card {
     public String suit, value;
     public Card next;  // reference to card below this card
     private Paint blockColor, hiddenColor, textPaint;
+    Drawable cardBack;
 
-    public Card(int cardSuit, int cardValue) {
+    public Card(int cardSuit, int cardValue, Drawable cardBack) {
         this.cardSuit = cardSuit;
         this.cardValue = cardValue;
+        this.cardBack = cardBack;
         suit = displaySuit();
         value = displayValue();
         hidden = true;
         next = null;
 
-        // TODO: Make cards look nicer
+        // TODO: Make front of cards look nicer
         blockColor = new Paint();
         blockColor.setColor(Color.rgb(70,70,70));
         hiddenColor = new Paint();
@@ -113,13 +118,9 @@ public class Card {
     public void draw(Canvas canvas, int left, int top) {
         // Draws the card on the canvas
         if (this.hidden) {
-            // TODO: Draw card back (mipmap.card_back [png], better way to do this?)
-//            Drawable d = getResources().getDrawable(R.mipmap.card_back, null);
-//            d.setBounds(left, top, left+width, top+height);
-//            d.draw(canvas);
-            canvas.drawRect(left, top, left+width, top+height, hiddenColor);
-            // draw card left border (TODO: Remove after implement card back)
-            canvas.drawRect(left, top, left+2, top+height, blockColor);
+            // Draw card back
+            cardBack.setBounds(left, top, left+width, top+height);
+            cardBack.draw(canvas);
         } else {
             canvas.drawRect(left, top, left+width, top+height, blockColor);
             canvas.drawText(value, left+5, top+11, textPaint);

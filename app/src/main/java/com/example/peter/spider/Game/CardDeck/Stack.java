@@ -1,9 +1,12 @@
 package com.example.peter.spider.Game.CardDeck;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
+
+import java.util.HashMap;
 
 public class Stack {
     /**
@@ -45,7 +48,7 @@ public class Stack {
          *  constructor. Each card's width is set.
          */
         this.cardWidth = cardWidth;
-        cardHeight = (int) (cardWidth * 1.5);
+        cardHeight = (int) (cardWidth * 1.4);
         Card card = head;
         while (card != null) {
             card.setSize(cardWidth, cardHeight);
@@ -94,8 +97,7 @@ public class Stack {
         else if (stackId == 8) {
             // Draw un-played cards (hidden) in sets of 8
             // Fake card since cards are hidden anyway
-            Card f = new Card(1, 1);
-            f.setSize(cardWidth, cardHeight);
+            Card f = head;
             // Draw sets of 8 side by side
             int numStacks = numCards / 8;
             for (int i=(numStacks-1); i>=0; --i) {
