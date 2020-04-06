@@ -88,6 +88,9 @@ public class Master {
         canvas.drawText("Moves: " + moves, 15, textPaint.getTextSize()+5, textPaint);
         // TODO: Use undo icon instead
         canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
+        // TODO: Draw time
+//        String time = historyTracker.timeElapsed();
+//        canvas.drawText(time, screenWidth/2, screenHeight-40, textPaint)
     }
 
     public boolean legalTouch(float x, float y) {
@@ -111,8 +114,7 @@ public class Master {
                     return distributeNewCards();
                 } else {
                     // Legal move initiated, store coords to check for tap (no click & drag)
-                    movingStack.assignPosition(x, y);
-                    //movingStack.assignPosition((int) x, (int) y, cardWidth);
+                    movingStack.assignPosition((int) x, (int) y, cardWidth);
                     originalStack = stack.stackId;
                     tappedX = x;
                     tappedY = y;

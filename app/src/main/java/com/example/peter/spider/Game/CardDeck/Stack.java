@@ -67,8 +67,9 @@ public class Stack {
          * Update position of MOVING STACK (only called for stack in motion)
          */
         // Adjust display location so that finger is in bottom right corner
-        left = (int) x - cardWidth;
-        top = (int) y - stackHeight;
+        left = (int) x - cardWidth - 10;
+        top = (int) y - stackHeight - 10;
+        // NOTE: -10 to get a little buffer above the fatness of your finger
     }
 
     public void drawStack(Canvas canvas) {
