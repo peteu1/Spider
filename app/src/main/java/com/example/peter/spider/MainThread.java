@@ -3,6 +3,8 @@ package com.example.peter.spider;
 import android.graphics.Canvas;
 import android.view.SurfaceHolder;
 
+import com.example.peter.spider.Game.GameView;
+
 public class MainThread extends Thread {
     // Thread allows multiple processes at the same time
     private SurfaceHolder surfaceHolder;  // SurfaceHolder contains the canvas
