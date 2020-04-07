@@ -5,50 +5,69 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-public class HistoryTracker {
+class HistoryTracker {
 
     private final String TAG = "HISTORY_TRACKER";
     private ArrayList<HistoryObject> history;
 
-    private int numMoves = 0;
+    private int numMoves;
     private boolean lastActionRemove = false;
-    private long startMillis;
-    private long elapsedMillis;
+    private long startMillis, elapsedMillis;
 
-    public HistoryTracker() {
+    HistoryTracker() {
         history = new ArrayList<HistoryObject>();
-        long startMillis = System.currentTimeMillis();
+        startMillis = System.currentTimeMillis();
         elapsedMillis = 0;
-        // TODO: Fix time so that there's start and end to get current.
-        // Add current to elapsed, onPause and such, store elapsed
-        // OnResume, restart startMillis
-        // OnPause, update elapsedMillis
+        numMoves = 0;
     }
 
-    public int getNumMoves() {
+    HistoryTracker(ArrayList<HistoryObject> history, long elapsedMillis,
+                   int numMoves) {
+        /**
+         * This constructor is called to restore retained fragment, i.e.
+         *  - when the screen is rotated
+         *  - when the app is left and returned to (onResume)
+         */
+        this.history = history;
+        this.elapsedMillis = elapsedMillis;
+        this.numMoves = numMoves;
+        // OnResume, restart startMillis
+        startMillis = System.currentTimeMillis();
+    }
+
+    int getNumMoves() {
         return numMoves;
     }
 
-    // TODO: Get time elapsed
-//    public String timeElapsed() {
-//        long millis = System.currentTimeMillis();
-//        long elapsedMillis = millis - startMillis;
-//        long minutes = TimeUnit.MILLISECONDS.toMinutes(millis);
-//        long seconds = TimeUnit.MILLISECONDS.toSeconds(millis);
-//    }
+    String getTimeElapsed() {
+        long curMillis = System.currentTimeMillis();
+        long totalMillis = elapsedMillis + (curMillis-startMillis);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(totalMillis);
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(totalMillis) % 60;
+        String strSeconds = ((seconds<10) ? "0" : "") + seconds;
+        return minutes + ":" + strSeconds;
+    }
 
-    public void record(HistoryObject move) {
+    long stopClock() {
+        // Called when game is paused
+        // append current time to elapsedMillis & return
+        long curMillis = System.currentTimeMillis();
+        elapsedMillis += (curMillis-startMillis);
+        return elapsedMillis;
+    }
+
+    void record(HistoryObject move) {
         // Prepend move to beginning of history list
         numMoves++;
         lastActionRemove = false;
         history.add(0, move);
     }
 
-    public boolean isEmpty() {
+    boolean isEmpty() {
         return history.size() == 0;
     }
 
-    public HistoryObject pop() {
+    HistoryObject pop() {
         /**
          * Removes the most recent HistoryObject.
          * RULES: You can only reduce move count by 1, consecutive undo's

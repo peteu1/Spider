@@ -21,11 +21,10 @@ public class Master {
      * It holds the list of Stacks, and passes stack objects to the game masters to
      *  be the main dictator between actions received and updates to the game
      */
-
     private static final String TAG = "Master";
     public int difficulty;
     public Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
-    private HistoryTracker historyTracker;
+    public HistoryTracker historyTracker;
     private Paint textPaint;
 
     // Top of completed and un-played stacks
@@ -91,12 +90,12 @@ public class Master {
         String moves = String.valueOf(historyTracker.getNumMoves());
         canvas.drawText("Moves: " + moves, 15, textPaint.getTextSize()+5, textPaint);
         // Draw menu "button" (TODO: Properly center text)
-        canvas.drawText("Menu", (int) (screenWidth/2)-25, textPaint.getTextSize()+5, textPaint);
+        canvas.drawText("Menu", (int) (screenWidth/2) - 25, textPaint.getTextSize()+5, textPaint);
         // TODO: Use undo icon instead
         canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
-        // TODO: Draw time
-//        String time = historyTracker.timeElapsed();
-//        canvas.drawText(time, screenWidth/2, screenHeight-40, textPaint)
+        // Draw time - bottom center
+        String time = historyTracker.getTimeElapsed();
+        canvas.drawText(time, (int) (screenWidth/2) - 25, screenHeight-40, textPaint);
     }
 
     public boolean legalTouch(float x, float y) {
@@ -269,7 +268,6 @@ public class Master {
          * Un-does a move when undo is clicked
          */
         if (historyTracker.isEmpty()) {
-            // TODO: Flash message ("Nothing to Undo")
             return false;
         }
         HistoryObject move = historyTracker.pop();
@@ -307,5 +305,19 @@ public class Master {
             stacks[8].addStack(replaceStack);
         }
         return true;
+    }
+
+    // Methods for saving data and restoring saved game state
+
+    public long stopClock() {
+        // Stops the historyTracker clock and returns time elapsed
+        return historyTracker.stopClock();
+    }
+
+    public void restoreClock(long timeElapsed, int numMoves) {
+        // Restores time elapsed in historyTracker
+        // TODO: Restore history (list of moves)?
+        ArrayList<HistoryObject> history = new ArrayList<HistoryObject>();
+        historyTracker = new HistoryTracker(history, timeElapsed, numMoves);
     }
 }

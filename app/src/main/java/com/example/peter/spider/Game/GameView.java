@@ -8,6 +8,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
+import android.os.Parcelable;
+import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -45,6 +48,35 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         master = new Master(displayMetrics, difficulty, mStore);
+    }
+
+    public GameView(Context context, Bundle savedInstanceState) {
+        /**
+         * Constructor to restore game where it left off.
+         */
+        super(context);
+        this.context = context;
+        getHolder().addCallback(this);
+        thread = new MainThread(getHolder(), this);
+        setFocusable(true);
+
+        // Initialize Image HashMap
+        HashMap<Integer, Drawable> mStore = new HashMap<Integer, Drawable>();
+        Drawable cardBack = getResources().getDrawable(R.drawable.card_back, null);
+        mStore.put(R.id.card_back, cardBack);
+
+        // Initialize Master (holds GameMaster and stacks)
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        // Re-create master
+        int difficulty = savedInstanceState.getInt("difficulty");
+        master = new Master(displayMetrics, difficulty, mStore);
+        // Restore history
+        long timeElapsed = savedInstanceState.getLong("TimeElapsed");
+        int numMoves = savedInstanceState.getInt("NumMoves");
+        master.restoreClock(timeElapsed, numMoves);
+        // TODO: Restore the rest of history
+        // TODO: Restore card stack positions (from history?)
     }
 
     @Override
@@ -155,4 +187,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
+    public Bundle saveInstance(Bundle savedInstanceState) {
+        /**
+         * Called by MainActivity.onSaveInstanceState() to save all data
+         *  needed to set game back to where it left off.
+         */
+        savedInstanceState.putInt("difficulty", master.difficulty);
+        // TODO: Store random seed when implement shuffle
+        // Stop any cards in motion
+        if (cardsInMotion) {
+            master.endStackMotion(-9999, -9999);
+        }
+        long timeElapsed = master.stopClock();
+        savedInstanceState.putLong("TimeElapsed", timeElapsed);
+        int numMoves = master.historyTracker.getNumMoves();
+        savedInstanceState.putInt("NumMoves", numMoves);
+        // putString, putBoolean, putDouble
+        return savedInstanceState;
+    }
 }
