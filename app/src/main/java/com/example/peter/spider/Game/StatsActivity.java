@@ -2,6 +2,7 @@ package com.example.peter.spider.Game;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -58,16 +59,22 @@ public class StatsActivity extends Activity implements View.OnClickListener {
         getHighScores();
         // Update scores in UI
         if (currentTime.equals(bestTime)) {
-            // TODO: Use gold font color
-            currentTimeText.setText(currentTime);
-            bestTimeText.setText(bestTime);
+            // TODO: Use Gold not yellow (yellow looks trashy)
+            currentTimeText.setTextColor(Color.YELLOW);
+            bestTimeText.setTextColor(Color.YELLOW);
+            rankTimeText.setTextColor(Color.YELLOW);
         }
-        if (currentMoves == bestMoves) {
-            // TODO: Use gold font color
-            currentMovesText.setText(String.valueOf(currentMoves));
-            bestMovesText.setText(String.valueOf(bestMoves));
-        }
+        currentTimeText.setText(currentTime);
+        bestTimeText.setText(bestTime);
         rankTimeText.setText(String.valueOf(rankTime));
+        if (currentMoves == bestMoves) {
+            // TODO: Use Gold not yellow (yellow looks trashy)
+            currentMovesText.setTextColor(Color.YELLOW);
+            bestMovesText.setTextColor(Color.YELLOW);
+            rankMovesText.setTextColor(Color.YELLOW);
+        }
+        currentMovesText.setText(String.valueOf(currentMoves));
+        bestMovesText.setText(String.valueOf(bestMoves));
         rankMovesText.setText(String.valueOf(rankMoves));
     }
 
@@ -83,23 +90,13 @@ public class StatsActivity extends Activity implements View.OnClickListener {
 
     private void addStats() {
         /**
-         * Adds current time/moves to stats history file
+         * Adds current time/moves to stats history file and get current rank
          */
+        // TODO: First need to read everything, then re-write with new row
         File filePath = getExternalFilesDir(null);
         String statsFileName = String.valueOf(difficulty) + STATS_HISTORY_FILE_NAME;
-        // Add stats to file
         File statsFile = new File(filePath, statsFileName);
-        // TODO: First need to read everything, then re-write with new row
-        try {
-            FileWriter writer = new FileWriter(statsFile);
-            String newLine = currentTime + "," + currentMoves;
-            writer.append(newLine + "\n");
-            writer.flush();
-            writer.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // Read through stats file to get rank
+        // Read in current stats file
         int length = (int) statsFileName.length();
         byte[] bytes = new byte[length];
         try {
@@ -118,21 +115,34 @@ public class StatsActivity extends Activity implements View.OnClickListener {
         String[] rows = rawData.split("\n");
         ArrayList<String> data = new ArrayList<String>(Arrays.asList(rows));
         Log.e(TAG, "rawData:" + rawData);
+        // Get current rank & re-write output
         rankTime = 1;
         rankMoves = 1;
         int currentSeconds = convertTime(currentTime);
-        for (String row : data) {
-            String[] items = row.split(",");
-            try {
-                if (convertTime(items[0]) < currentSeconds) {
-                    rankTime++;
+        try {
+            FileWriter writer = new FileWriter(statsFile);
+            // Loop through lines of previous data
+            for (String row : data) {
+                String[] items = row.split(",");
+                try {
+                    if (convertTime(items[0]) < currentSeconds) {
+                        rankTime++;
+                    }
+                    if (Integer.parseInt(items[1]) < currentMoves) {
+                        rankMoves++;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                if (Integer.parseInt(items[1]) < currentMoves) {
-                    rankMoves++;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+                // Add line back to stats file
+                writer.append(row + "\n");
             }
+            // Add new element to end of stats file
+            writer.append(currentTime + "," + currentMoves + "\n");
+            writer.flush();
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         // TODO: Don't need high score file? Set font gold if rank = 1?
     }
@@ -167,6 +177,7 @@ public class StatsActivity extends Activity implements View.OnClickListener {
             bestTime = items[0];
             bestMoves = Integer.parseInt(items[1]);
             // Update high scores if broken
+            // TODO: don't update bests, so user can see previous best when beaten
             if (convertTime(currentTime) < convertTime(bestTime)) {
                 bestTime = currentTime;
             }
