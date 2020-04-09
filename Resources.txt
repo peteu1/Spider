@@ -1,1 +1,6 @@
 Card back image: http://www.pokershop.ro/media/catalog/product/cache/1/image/650x650/9df78eab33525d08d6e5fb8d27136e95/p/l/playing-cards-bicycle-rider-back-blue.png
+
+Spades: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-spade-suit-card.png
+Hearts: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-heart-suit-card.png
+Diamonds: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-diamond-suit-card.png
+Clubs: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-club-suit-card-game.png

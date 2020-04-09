@@ -22,12 +22,13 @@ public class Card {
     public String suit, value;
     public Card next;  // reference to card below this card
     private Paint blockColor, hiddenColor, textPaint;
-    Drawable cardBack;
+    Drawable cardBack, suitImage;
 
-    public Card(int cardSuit, int cardValue, Drawable cardBack) {
+    public Card(int cardSuit, int cardValue, Drawable cardBack, Drawable suitImage) {
         this.cardSuit = cardSuit;
         this.cardValue = cardValue;
         this.cardBack = cardBack;
+        this.suitImage = suitImage;
         suit = displaySuit();
         value = displayValue();
         hidden = true;
@@ -124,7 +125,9 @@ public class Card {
         } else {
             canvas.drawRect(left, top, left+width, top+height, blockColor);
             canvas.drawText(value, left+5, top+11, textPaint);
-            canvas.drawText(suit, left+width-10, top+11, textPaint);
+            // Draw suit image
+            suitImage.setBounds(left+width-35, top+5, left+width-5, top+35);
+            suitImage.draw(canvas);
         }
         // Draw divider between cards
         canvas.drawRect(left, top, left+width, top+2, textPaint);

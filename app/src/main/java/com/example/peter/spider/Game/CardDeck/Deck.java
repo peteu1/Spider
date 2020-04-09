@@ -28,15 +28,29 @@ public class Deck {
         int cardNum = 0;
         for (int i=1; i<=4; ++i) {
             int suit = ((i-1)%difficulty)+1;
-            // TODO: Get current suit from mStore
+            Drawable suitImage = getSuitDrawable(suit);
             for (int cardVal=1; cardVal<=13; ++cardVal) {
-                rawDeck[cardNum] = new Card(suit, cardVal, cardBack);
+                rawDeck[cardNum] = new Card(suit, cardVal, cardBack, suitImage);
                 ++cardNum;
             }
         }
         // TODO: Shuffle the cards with seed (wait until after test winning games, etc.)
         Card[] shuffledDeck = rawDeck;
         return shuffledDeck;
+    }
+
+    private Drawable getSuitDrawable(int suit) {
+        switch (suit) {
+            case 1:
+                return mStore.get(R.id.suit_spades);
+            case 2:
+                return mStore.get(R.id.suit_hearts);
+            case 3:
+                return mStore.get(R.id.suit_diamonds);
+            case 4:
+                return mStore.get(R.id.suit_clubs);
+        }
+        return mStore.get(R.id.suit_spades);
     }
 
     public Stack[] dealStacks() {

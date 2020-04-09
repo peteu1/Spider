@@ -3,15 +3,9 @@ package com.example.peter.spider.Game;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
-import android.os.Parcelable;
-import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -23,14 +17,11 @@ import com.example.peter.spider.MainActivity;
 import com.example.peter.spider.MainThread;
 import com.example.peter.spider.R;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -78,36 +69,18 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         this.mStore = new HashMap<Integer, Drawable>();
         Drawable cardBack = getResources().getDrawable(R.drawable.card_back, null);
         mStore.put(R.id.card_back, cardBack);
+        Drawable spades = getResources().getDrawable(R.drawable.suit_spades, null);
+        mStore.put(R.id.suit_spades, spades);
+        Drawable hearts = getResources().getDrawable(R.drawable.suit_hearts, null);
+        mStore.put(R.id.suit_hearts, hearts);
+        Drawable diamonds = getResources().getDrawable(R.drawable.suit_diamonds, null);
+        mStore.put(R.id.suit_diamonds, diamonds);
+        Drawable clubs = getResources().getDrawable(R.drawable.suit_clubs, null);
+        mStore.put(R.id.suit_clubs, clubs);
 
         // Get display metrics
         displayMetrics = new DisplayMetrics();
         ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-    }
-
-    private ArrayList<String> readSavedData() {
-        // Read game state data from file
-        Log.e(TAG, "readSavedData()");
-        File filePath = context.getExternalFilesDir(null);
-        File file = new File(filePath, GAME_STATE_FILE_NAME);
-        int length = (int) file.length();
-        byte[] bytes = new byte[length];
-        try {
-            FileInputStream in = new FileInputStream(file);
-            try {
-                in.read(bytes);
-            } finally {
-                in.close();
-            }
-        } catch (FileNotFoundException e) {
-            Log.e("login activity", "File not found: " + e.toString());
-        } catch (IOException e) {
-            Log.e("login activity", "Can not read file: " + e.toString());
-        }
-        // separate into arraylist
-        String rawData = new String(bytes);
-        String[] items = rawData.split("\n");
-        ArrayList<String> data = new ArrayList<String>(Arrays.asList(items));
-        return data;
     }
 
     @Override
@@ -201,6 +174,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         context.startActivity(i);
                     }
+                    // TODO: Remove, testing game over
+                    else if ((y > (master.screenHeight-100)) && (x>120)) {
+                        gameWon();
+                    }
                 }
                 break;
             case MotionEvent.ACTION_CANCEL:
@@ -229,16 +206,25 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     private void gameWon() {
-        /**
-         * Called when the game is won
-         */
+        // Called when the game is won
         Log.e(TAG, "You win!");
         Toast.makeText(context, "You Win!", Toast.LENGTH_SHORT).show();
-        // TODO: go to game won screen, show stats
-        // TODO: delete GAME_STATE_FILE_NAME
-        // Return to home screen
-        Intent i = new Intent(context, MainActivity.class);
+        // Delete saved data in GAME_STATE_FILE_NAME
+        File filePath = context.getExternalFilesDir(null);
+        try {
+            File file = new File(filePath, GAME_STATE_FILE_NAME);
+            file.delete();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // Get stats, add to intent & launch game won screen
+        String completedTime = master.historyTracker.getTimeElapsed();
+        int totalMoves = master.historyTracker.getNumMoves();
+        // TODO: Get score
+        Intent i = new Intent(context, StatsActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        i.putExtra("completedTime", completedTime);
+        i.putExtra("totalMoves", totalMoves);
         context.startActivity(i);
     }
 
@@ -260,4 +246,31 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             e.printStackTrace();
         }
     }
+
+    private ArrayList<String> readSavedData() {
+        // Read game state data from file
+        Log.e(TAG, "readSavedData()");
+        File filePath = context.getExternalFilesDir(null);
+        File file = new File(filePath, GAME_STATE_FILE_NAME);
+        int length = (int) file.length();
+        byte[] bytes = new byte[length];
+        try {
+            FileInputStream in = new FileInputStream(file);
+            try {
+                in.read(bytes);
+            } finally {
+                in.close();
+            }
+        } catch (FileNotFoundException e) {
+            Log.e("login activity", "File not found: " + e.toString());
+        } catch (IOException e) {
+            Log.e("login activity", "Can not read file: " + e.toString());
+        }
+        // separate into arraylist
+        String rawData = new String(bytes);
+        String[] items = rawData.split("\n");
+        ArrayList<String> data = new ArrayList<String>(Arrays.asList(items));
+        return data;
+    }
+
 }
