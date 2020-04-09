@@ -9,7 +9,7 @@ public class MainThread extends Thread {
     // Thread allows multiple processes at the same time
     private SurfaceHolder surfaceHolder;  // SurfaceHolder contains the canvas
     private GameView gameView;
-    private boolean running;
+    private boolean running = false;
     public static Canvas canvas;  // Canvas is what gets drawn on
 
     public MainThread(SurfaceHolder surfaceHolder, GameView gameView) {
@@ -22,10 +22,13 @@ public class MainThread extends Thread {
         running = isRunning;
     }
 
+    public boolean getRunning() {
+        return running;
+    }
+
     @Override
     public void run() {
         while(running) {
-            //startTime = system.nanoTime();
             canvas = null;
             try {
                 canvas = this.surfaceHolder.lockCanvas();  // must lock (freeze) canvas before drawing
@@ -33,7 +36,13 @@ public class MainThread extends Thread {
                     this.gameView.update();
                     this.gameView.draw(canvas);
                 }
-            } catch (Exception e) {} finally {
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                }
+            } finally {
                 if (canvas != null) {
                     try {
                         surfaceHolder.unlockCanvasAndPost(canvas);
