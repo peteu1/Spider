@@ -23,7 +23,7 @@ public class Master {
      *  be the main dictator between actions received and updates to the game
      */
     private static final String TAG = "Master";
-    private int difficulty;
+    public int difficulty;
     private int seed;
     private Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
     HistoryTracker historyTracker;

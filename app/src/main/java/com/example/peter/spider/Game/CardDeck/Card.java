@@ -19,7 +19,7 @@ public class Card {
     private int height;
     public boolean hidden;
     public int cardSuit, cardValue;
-    public String suit, value;
+    public String value;
     public Card next;  // reference to card below this card
     private Paint blockColor, hiddenColor, textPaint;
     Drawable cardBack, suitImage;
@@ -29,7 +29,6 @@ public class Card {
         this.cardValue = cardValue;
         this.cardBack = cardBack;
         this.suitImage = suitImage;
-        suit = displaySuit();
         value = displayValue();
         hidden = true;
         next = null;
@@ -56,22 +55,6 @@ public class Card {
                 return "K";
             default:
                 return String.valueOf(this.cardValue);
-        }
-    }
-
-    private String displaySuit() {
-        // TODO: get symbols
-        switch (cardSuit) {
-            case 1:
-                return "S";
-            case 2:
-                return "H";
-            case 3:
-                return "D";
-            case 4:
-                return "C";
-            default:
-                return "X";
         }
     }
 

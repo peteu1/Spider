@@ -71,6 +71,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private boolean checkForActiveGame() {
+        /**
+         * Looks at the saved game to see if there is an incomplete
+         * game that can be resumed.
+         */
         Log.e(TAG, "checkForActiveGame()");
         File filePath = getExternalFilesDir(null);
         File file = new File(filePath, GameView.GAME_STATE_FILE_NAME);
