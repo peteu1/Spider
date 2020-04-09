@@ -11,6 +11,7 @@ import android.util.Log;
 import com.example.peter.spider.Game.CardDeck.Card;
 import com.example.peter.spider.Game.CardDeck.Deck;
 import com.example.peter.spider.Game.CardDeck.Stack;
+import com.example.peter.spider.R;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,8 +40,43 @@ public class Master {
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
 
-    public Master(DisplayMetrics displayMetrics, int difficulty, HashMap<Integer, Drawable> mStore) {
+    public Master(DisplayMetrics displayMetrics, int difficulty,
+                  HashMap<Integer, Drawable> mStore) {
         this.difficulty = difficulty;
+        initialize(displayMetrics, mStore);
+
+    }
+
+    public Master(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore,
+                  ArrayList<String> savedData) {
+        long timeElapsed = 0;
+        int numMoves = 0;
+        for (String line : savedData) {
+            Log.e(TAG, "savedData:" + line);
+            String[] data = line.split(",");
+            Log.e(TAG, "data[0]:" + data[0]);
+            if (data[0].equals("difficulty")) {
+                this.difficulty = Integer.parseInt(data[1]);
+                Log.e(TAG, "Integer.parseInt(data[1]):" + Integer.parseInt(data[1]));
+            } else if (data[0].equals("timeElapsed")) {
+                timeElapsed = Long.parseLong(data[1]);
+            } else if (data[0].equals("numMoves")) {
+                numMoves = Integer.parseInt(data[1]);
+            }
+        }
+        // Re-initialize stacks/etc to initial set-up
+        initialize(displayMetrics, mStore);
+
+        restoreClock(timeElapsed, numMoves);
+        // TODO: Restore the rest of history
+        // TODO: Write history to file while game is happening
+        // TODO: Restore card stack positions
+    }
+
+    private void initialize(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore) {
+        /**
+         * Constuctor helper for both new master and restore master constructors
+         */
         Deck deck = new Deck(difficulty, mStore);
         stacks = deck.dealStacks();
         historyTracker = new HistoryTracker();
@@ -72,6 +108,23 @@ public class Master {
         // Initiate un-played cards and stack locations
         stacks[8].assignPosition((int) (0.8*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
         stacks[9].assignPosition((int) (0.1*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
+    }
+
+    public void updateOrientation(DisplayMetrics displayMetrics, boolean portrait) {
+        // This is called when the screen is rotated
+//        if (portrait) {
+//            screenWidth = displayMetrics.widthPixels;
+//            screenHeight = displayMetrics.heightPixels;
+//        } else {
+//            screenWidth = displayMetrics.heightPixels;
+//            screenHeight = displayMetrics.widthPixels;
+//        }
+        screenWidth = displayMetrics.widthPixels;
+        screenHeight = displayMetrics.heightPixels;
+        stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
+        cardWidth = stackWidth - STACK_SPACING;
+        // Re-arrange stacks with new dimensions
+        arrangeStacks();
     }
 
     public void draw(Canvas canvas) {
@@ -320,4 +373,23 @@ public class Master {
         ArrayList<HistoryObject> history = new ArrayList<HistoryObject>();
         historyTracker = new HistoryTracker(history, timeElapsed, numMoves);
     }
+
+    public ArrayList<String> getGameState() {
+        /**
+         * Compiles all game information necessary to re-create current game state
+         */
+        // Stop any cards in motion
+        if (movingStack != null) {
+            endStackMotion(-9999, -9999);
+        }
+        ArrayList<String> data = new ArrayList<String>();
+        data.add("difficulty," + difficulty);
+        long timeElapsed = stopClock();
+        data.add("timeElapsed," + timeElapsed);
+        int numMoves = historyTracker.getNumMoves();
+        data.add("numMoves," + numMoves);
+        // TODO: Store random seed when implement shuffle
+        return data;
+    }
+
 }

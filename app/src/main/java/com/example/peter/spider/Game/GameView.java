@@ -3,6 +3,7 @@ package com.example.peter.spider.Game;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -22,18 +23,30 @@ import com.example.peter.spider.MainActivity;
 import com.example.peter.spider.MainThread;
 import com.example.peter.spider.R;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private static final String TAG = "GameView";
-    private MainThread thread;
+    private static final String GAME_STATE_FILE_NAME = "game_state.txt";
+    private MainThread thread = null;
     private Context context;
-    private Master master;
+    public Master master;
     private boolean cardsInMotion;
 
     public GameView(Context context, int difficulty) {
         super(context);
+        Log.e(TAG, "New constructor called.");
         this.context = context;
         getHolder().addCallback(this);
         thread = new MainThread(getHolder(), this);
@@ -50,11 +63,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         master = new Master(displayMetrics, difficulty, mStore);
     }
 
-    public GameView(Context context, Bundle savedInstanceState) {
+    public GameView(Context context) {
         /**
          * Constructor to restore game where it left off.
          */
         super(context);
+        Log.e(TAG, "Restore constructor called.");
         this.context = context;
         getHolder().addCallback(this);
         thread = new MainThread(getHolder(), this);
@@ -69,40 +83,76 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         // Re-create master
-        int difficulty = savedInstanceState.getInt("difficulty");
-        master = new Master(displayMetrics, difficulty, mStore);
-        // Restore history
-        long timeElapsed = savedInstanceState.getLong("TimeElapsed");
-        int numMoves = savedInstanceState.getInt("NumMoves");
-        master.restoreClock(timeElapsed, numMoves);
-        // TODO: Restore the rest of history
-        // TODO: Restore card stack positions (from history?)
+        ArrayList<String> savedData = readSavedData();
+        master = new Master(displayMetrics, mStore, savedData);
+    }
+
+    public void updateOrientation(Context context, int orientation) {
+        this.context = context;
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        boolean portrait = (orientation == Configuration.ORIENTATION_PORTRAIT);
+        master.updateOrientation(displayMetrics, portrait);
+    }
+
+    private ArrayList<String> readSavedData() {
+        File filePath = context.getExternalFilesDir(null);
+        File file = new File(filePath, GAME_STATE_FILE_NAME);
+        int length = (int) file.length();
+        byte[] bytes = new byte[length];
+        try {
+            FileInputStream in = new FileInputStream(file);
+            try {
+                in.read(bytes);
+            } finally {
+                in.close();
+            }
+        } catch (FileNotFoundException e) {
+            Log.e("login activity", "File not found: " + e.toString());
+        } catch (IOException e) {
+            Log.e("login activity", "Can not read file: " + e.toString());
+        }
+        // separate into arraylist
+        String rawData = new String(bytes);
+        String[] items = rawData.split("\n");
+        ArrayList<String> data = new ArrayList<String>(Arrays.asList(items));
+        return data;
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        Log.e(TAG, "surfaceCreated()");
         cardsInMotion = false;
-        // Start the Thread, which loops while(running) making repeated calls to update() and start()
-        thread.setRunning(true);
-        thread.start();
+        if (thread == null) {
+            Log.e(TAG, "Re-creating thread");
+            getHolder().addCallback(this);
+            thread = new MainThread(getHolder(), this);
+        } else {
+            Log.e(TAG, "Thread already exists!!");
+        }
+        if (!thread.getRunning()) {
+            thread.setRunning(true);
+            thread.start();
+        }
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    public void surfaceChanged(SurfaceHolder holder, int format,
+                               int width, int height) {
+        Log.e(TAG, "surfaceChanged()");
+    }
+
+    public void killThread() {
+        if (thread != null) {
+            thread.setRunning(false);
+            thread = null;
+        }
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        boolean retry = true;
-        while (retry) {
-            try {
-                thread.setRunning(false);
-                thread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            retry = false;
-        }
+        Log.e(TAG, "surfaceDestroyed()");
+//        this.killThread();  // Stop the thread
     }
 
     @Override
@@ -187,22 +237,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
-    public Bundle saveInstance(Bundle savedInstanceState) {
+    public void storeGameState() {
         /**
-         * Called by MainActivity.onSaveInstanceState() to save all data
-         *  needed to set game back to where it left off.
+         * Called when surfaceDestroyed() is called after (1) screen
+         *  rotation, or (2) back pressed.
+         * - Store all game data
          */
-        savedInstanceState.putInt("difficulty", master.difficulty);
-        // TODO: Store random seed when implement shuffle
-        // Stop any cards in motion
-        if (cardsInMotion) {
-            master.endStackMotion(-9999, -9999);
+        Log.e(TAG, "storeGameState()");
+        ArrayList<String> gameData = master.getGameState();
+        File filePath = context.getExternalFilesDir(null);
+        try {
+            File file = new File(filePath, GAME_STATE_FILE_NAME);
+            FileWriter writer = new FileWriter(file);
+            for (String line : gameData) {
+                writer.append(line + "\n");
+            }
+            writer.flush();
+            writer.close();
+        } catch (Exception e) {
+            // TODO: May need to check file.exists() and then file.delete()
+            e.printStackTrace();
         }
-        long timeElapsed = master.stopClock();
-        savedInstanceState.putLong("TimeElapsed", timeElapsed);
-        int numMoves = master.historyTracker.getNumMoves();
-        savedInstanceState.putInt("NumMoves", numMoves);
-        // putString, putBoolean, putDouble
-        return savedInstanceState;
     }
 }

@@ -52,8 +52,7 @@ class HistoryTracker {
         // Called when game is paused
         // append current time to elapsedMillis & return
         long curMillis = System.currentTimeMillis();
-        elapsedMillis += (curMillis-startMillis);
-        return elapsedMillis;
+        return elapsedMillis + (curMillis-startMillis);
     }
 
     void record(HistoryObject move) {
