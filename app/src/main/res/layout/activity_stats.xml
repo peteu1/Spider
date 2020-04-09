@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Game.StatsActivity">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <TextView android:text="Stats:"
+            android:paddingTop="15dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="30dp"/>
+        <TableLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <TableRow>
+                <TextView android:text="Current"
+                    android:paddingTop="15dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="30dp"/>
+                <TextView android:text="Rank"
+                    android:paddingTop="15dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="30dp"/>
+                <TextView android:text="Best"
+                    android:paddingTop="15dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="30dp"/>
+            </TableRow>
+            <TableRow>
+                <TextView android:text="0"
+                    android:id="@+id/currentTime"
+                    android:paddingLeft="10dp"
+                    android:textSize="25dp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+                <TextView android:text="0"
+                    android:id="@+id/rankTime"
+                    android:paddingLeft="10dp"
+                    android:textSize="25dp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+                <TextView android:text="0"
+                    android:id="@+id/bestTime"
+                    android:paddingLeft="10dp"
+                    android:textSize="25dp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+            </TableRow>
+            <TableRow>
+                <TextView android:text="0"
+                    android:id="@+id/currentMoves"
+                    android:paddingLeft="10dp"
+                    android:textSize="25dp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+                <TextView android:text="0"
+                    android:id="@+id/rankMoves"
+                    android:paddingLeft="10dp"
+                    android:textSize="25dp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+                <TextView android:text="0"
+                    android:id="@+id/bestMoves"
+                    android:paddingLeft="10dp"
+                    android:textSize="25dp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+            </TableRow>
+        </TableLayout>
+        <Button android:id="@+id/menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="30dp"
+            android:text="Return to Menu"/>
+    </LinearLayout>
+</RelativeLayout>

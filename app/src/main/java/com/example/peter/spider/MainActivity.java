@@ -45,8 +45,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     // When app returns to focus:
     // onResume(), gameView.surfaceCreated(), gameView.surfaceChanged()
 
-    // TODO: retain data when app is killed
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.e(TAG, "onCreate()");
@@ -69,11 +67,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         // Check if there is saved game data
         boolean activeGame = checkForActiveGame();
-        if (activeGame) {
-            resume.setVisibility(View.VISIBLE);
-        } else {
-            resume.setVisibility(View.GONE);
-        }
+        resume.setVisibility(activeGame ? View.VISIBLE : View.GONE);
     }
 
     private boolean checkForActiveGame() {
