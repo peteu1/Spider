@@ -1,6 +1,7 @@
 package com.example.peter.spider;
 
 import android.app.Activity;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -14,11 +15,31 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private final String TAG = "MainActivity";
     private Button easy, medium, hard, expert;
-    private GameView gameView;
+    private GameView gameView = null;
 
-    // When screen is rotated, lifecycle is like this:
-    // onPause(), onSaveInstanceState(), onCreate(),
-    // onRestoreInstanceState(), onResume()
+    // These are the app life-cycles for different actions:
+
+    // When initial gameView is created (after button pressed):
+    // onResume(), GameView(context, difficulty),
+    // gameView.surfaceCreated(), gameView.surfaceChanged()
+
+    // When screen is rotated:
+    // onPause(), onSaveInstanceState(), gameView.surfaceDestroyed(),
+    // onCreate(), GameView(context, savedInstance),
+    // onRestoreInstanceState(), onResume(),
+    // gameView.surfaceCreated(), gameView.surfaceChanged()
+
+    // When back button is pressed:
+    // onPause(), gameView.surfaceDestroyed(),
+
+    // Return to app after back button pressed:
+    // onCreate(), onResume()
+
+    // When app leaves focus:
+    // onPause(), onSaveInstanceState(), gameView.surfaceDestroyed()
+
+    // When app returns to focus:
+    // onResume(), gameView.surfaceCreated(), gameView.surfaceChanged()
 
     // TODO: retain data when app is killed
 
@@ -27,9 +48,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Log.e(TAG, "onCreate()");
         // Launches the Menu screen
         super.onCreate(savedInstanceState);
+        // TODO: Need this?
+        //requestPermissions(new String[]{WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE}, 1);
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-
+        // TODO: Or if gameView was not in view when re-opening app/rotate screen
         if (savedInstanceState == null) {
+            // TODO: Check record to see if there is an incomplete
+            //  game, and add (unhide) resume if so.
             Log.e(TAG, "Loading menu...");
             setContentView(R.layout.activity_main);
 
@@ -46,7 +71,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             // Restore game from savedInstanceState
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                     WindowManager.LayoutParams.FLAG_FULLSCREEN);  // Make full screen
-            gameView = new GameView(this, savedInstanceState);
+            gameView = new GameView(this);
             setContentView(gameView);
         }
     }
@@ -76,9 +101,37 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        Log.e(TAG, "onConfigurationChanged()");
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            Log.e(TAG,"LANDSCAPE");
+        } else {
+            Log.e(TAG,"PORTRAIT");
+        }
+        super.onConfigurationChanged(newConfig);
+        if (gameView != null) {
+            Log.e(TAG, "gameView exists!");
+            gameView.updateOrientation(this, newConfig.orientation);
+            setContentView(gameView);
+        } else {
+            Log.e(TAG, "gameView DNE");
+            // TODO: Set content view to menu? Or do nothing
+        }
+    }
+
+    @Override
     protected void onPause() {
-        // TODO: Remove
+        // This is called when app is left and returned to, not onCreate()
         Log.e(TAG, "onPause()");
+        // TODO: notify gameView when saveInstanceState() is called
+        // TODO: Move this call to gameView.onSurfaceDestroyed()
+        // Only call this when: (1) screen rotates, or (2) screen does
+        //  not rotate and saveInstanceState never called [back pressed]
+        // TODO: Store screen orientation in this class
+        if (gameView != null) {
+            gameView.killThread();
+            gameView.storeGameState();
+        }
         super.onPause();
     }
 
@@ -95,7 +148,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         // This bundle will be passed to onCreate if the process is
         // killed and restarted.
         Log.e(TAG, "onSaveInstanceState()");
-        savedInstanceState = gameView.saveInstance(savedInstanceState);
         super.onSaveInstanceState(savedInstanceState);
     }
 
