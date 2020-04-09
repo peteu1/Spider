@@ -24,6 +24,7 @@ public class Master {
      */
     private static final String TAG = "Master";
     public int difficulty;
+    private int seed;
     public Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
     public HistoryTracker historyTracker;
     private Paint textPaint;
@@ -42,15 +43,24 @@ public class Master {
 
     public Master(DisplayMetrics displayMetrics, int difficulty,
                   HashMap<Integer, Drawable> mStore) {
+        /**
+         * Constructor for starting a new game.
+         */
         this.difficulty = difficulty;
+        generateSeed();
         initialize(displayMetrics, mStore);
-
     }
 
     public Master(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore,
                   ArrayList<String> savedData) {
+        /**
+         * Constructor for resuming a saved game.
+         */
         long timeElapsed = 0;
         int numMoves = 0;
+        boolean lastActionRemove = false;
+        ArrayList<HistoryObject> history = new ArrayList<HistoryObject>();
+        // Parse saved data
         for (String line : savedData) {
             Log.e(TAG, "savedData:" + line);
             String[] data = line.split(",");
@@ -58,26 +68,40 @@ public class Master {
             if (data[0].equals("difficulty")) {
                 this.difficulty = Integer.parseInt(data[1]);
                 Log.e(TAG, "Integer.parseInt(data[1]):" + Integer.parseInt(data[1]));
+            } else if (data[0].equals("seed")) {
+                seed = Integer.parseInt(data[1]);
             } else if (data[0].equals("timeElapsed")) {
                 timeElapsed = Long.parseLong(data[1]);
             } else if (data[0].equals("numMoves")) {
                 numMoves = Integer.parseInt(data[1]);
+            } else if (data[0].equals("lastActionRemove")) {
+                lastActionRemove = Boolean.parseBoolean(data[1]);
+            } else {
+                // history object
+                HistoryObject ho = new HistoryObject();
+                int numCards = Integer.parseInt(data[2]);
+                int from = Integer.parseInt(data[0]);
+                int to = Integer.parseInt(data[1]);
+                ho.recordMove(numCards, from, to);
+                history.add(ho);
             }
         }
         // Re-initialize stacks/etc to initial set-up
         initialize(displayMetrics, mStore);
+        // Restore historyTracker and re-create all moves
+        restoreHistory(history, timeElapsed, numMoves, lastActionRemove);
+    }
 
-        restoreClock(timeElapsed, numMoves);
-        // TODO: Restore the rest of history
-        // TODO: Write history to file while game is happening
-        // TODO: Restore card stack positions
+    private void generateSeed() {
+        // TODO: Randomly generate number
+        this.seed = 1;
     }
 
     private void initialize(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore) {
         /**
          * Constuctor helper for both new master and restore master constructors
          */
-        Deck deck = new Deck(difficulty, mStore);
+        Deck deck = new Deck(difficulty, seed, mStore);
         stacks = deck.dealStacks();
         historyTracker = new HistoryTracker();
         initPaints();
@@ -95,6 +119,9 @@ public class Master {
     }
 
     private void arrangeStacks() {
+        /**
+         * Sets the screen location for all the stacks based on screen size.
+         */
         int cardHeight = (int) (cardWidth * 1.5);
         // Playing stacks start 30 pixels below non-playing stacks
         int stackTop = NON_PLAYING_STACK_Y + cardHeight + 30;
@@ -110,15 +137,10 @@ public class Master {
         stacks[9].assignPosition((int) (0.1*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
     }
 
-    public void updateOrientation(DisplayMetrics displayMetrics, boolean portrait) {
-        // This is called when the screen is rotated
-//        if (portrait) {
-//            screenWidth = displayMetrics.widthPixels;
-//            screenHeight = displayMetrics.heightPixels;
-//        } else {
-//            screenWidth = displayMetrics.heightPixels;
-//            screenHeight = displayMetrics.widthPixels;
-//        }
+    public void updateOrientation(DisplayMetrics displayMetrics) {
+        /**
+         * This is called when the screen is rotated, re-arrange stack spacing
+         */
         screenWidth = displayMetrics.widthPixels;
         screenHeight = displayMetrics.heightPixels;
         stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
@@ -273,7 +295,7 @@ public class Master {
         if (newStackIdx != originalStack) {
             // Record the move
             HistoryObject move = new HistoryObject();
-            move.recordMove(movingStack.head, originalStack, newStackIdx);
+            move.recordMove(movingStack.head.cardsBelow(), originalStack, newStackIdx);
             if (completedStack != null) {
                 move.completedStackIds.add(newStackIdx);
             }
@@ -281,7 +303,7 @@ public class Master {
             boolean cardFlipped = stacks[originalStack].flipBottomCard();
             move.cardRevealed = cardFlipped;
             historyTracker.record(move);
-            Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.head.cardsBelow());
+            Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.numCards);
         }
         movingStack = null;
         return false;
@@ -309,7 +331,9 @@ public class Master {
             }
             currentCard = nextCard;
         }
-        move.recordMove(movingStack.head, 8, -3);
+//        move.recordMove(movingStack.head, 8, -3);
+        // TODO: Verify this works
+        move.recordMove(8, 8, -3);
         historyTracker.record(move);
         movingStack = null;
         // NOTE: return false because cards are not in motion
@@ -335,8 +359,7 @@ public class Master {
         }
         if (move.originalStack != 8) {
             // Remove moved stack from the destination
-            int stackLength = move.head.cardsBelow();
-            Stack origStack = stacks[move.newStack].removeStack(stackLength);
+            Stack origStack = stacks[move.newStack].removeStack(move.numCards);
             // Re-hide revealed card on original stack
             if (move.cardRevealed) {
                 stacks[move.originalStack].head.bottomCard().hidden = true;
@@ -362,21 +385,15 @@ public class Master {
 
     // Methods for saving data and restoring saved game state
 
-    public long stopClock() {
-        // Stops the historyTracker clock and returns time elapsed
-        return historyTracker.stopClock();
-    }
-
-    public void restoreClock(long timeElapsed, int numMoves) {
-        // Restores time elapsed in historyTracker
-        // TODO: Restore history (list of moves)?
-        ArrayList<HistoryObject> history = new ArrayList<HistoryObject>();
-        historyTracker = new HistoryTracker(history, timeElapsed, numMoves);
-    }
-
     public ArrayList<String> getGameState() {
         /**
-         * Compiles all game information necessary to re-create current game state
+         * Compiles all game information necessary to re-create current game state.
+         * - Information is stored in the file: GameView.GAME_STATE_FILE_NAME
+         * - Game state will be restored when app is quit and user pressed "Resume"
+         *   from the main menu.
+         *  Fields:
+         *      (1 value): difficulty, seed, timeElapsed, numMoves, lastActionRemove
+         *      history fields: from,to,numCards
          */
         // Stop any cards in motion
         if (movingStack != null) {
@@ -384,12 +401,32 @@ public class Master {
         }
         ArrayList<String> data = new ArrayList<String>();
         data.add("difficulty," + difficulty);
-        long timeElapsed = stopClock();
-        data.add("timeElapsed," + timeElapsed);
-        int numMoves = historyTracker.getNumMoves();
-        data.add("numMoves," + numMoves);
-        // TODO: Store random seed when implement shuffle
+        data.add("seed," + seed);
+        data = historyTracker.storeState(data);
         return data;
+    }
+
+    public void restoreHistory(ArrayList<HistoryObject> history, long timeElapsed,
+                               int numMoves, boolean lastActionRemove) {
+        /**
+         * Restores game to saved game state.
+         */
+        // Create new history tracker
+        historyTracker = new HistoryTracker();
+        // TODO: Redo all moves in history (opposite of undo)
+        // Loop backwards because most recent move first
+        for (int i=history.size()-1; i>=0; --i) {
+            HistoryObject move = history.get(i);
+            originalStack = move.originalStack;
+            movingStack = stacks[originalStack].removeStack(move.numCards);
+            if (move.originalStack == 8) {
+                distributeNewCards();
+            } else {
+                updateStacks(move.newStack);
+            }
+        }
+        // Restores time elapsed, numMoves in historyTracker
+        historyTracker.restoreProperties(timeElapsed, numMoves, lastActionRemove);
     }
 
 }

@@ -9,7 +9,6 @@ class HistoryTracker {
 
     private final String TAG = "HISTORY_TRACKER";
     private ArrayList<HistoryObject> history;
-
     private int numMoves;
     private boolean lastActionRemove = false;
     private long startMillis, elapsedMillis;
@@ -21,18 +20,8 @@ class HistoryTracker {
         numMoves = 0;
     }
 
-    HistoryTracker(ArrayList<HistoryObject> history, long elapsedMillis,
-                   int numMoves) {
-        /**
-         * This constructor is called to restore retained fragment, i.e.
-         *  - when the screen is rotated
-         *  - when the app is left and returned to (onResume)
-         */
-        this.history = history;
-        this.elapsedMillis = elapsedMillis;
-        this.numMoves = numMoves;
-        // OnResume, restart startMillis
-        startMillis = System.currentTimeMillis();
+    boolean isEmpty() {
+        return history.size() == 0;
     }
 
     int getNumMoves() {
@@ -40,6 +29,7 @@ class HistoryTracker {
     }
 
     String getTimeElapsed() {
+        // Shows current time elapsed to display on screen
         long curMillis = System.currentTimeMillis();
         long totalMillis = elapsedMillis + (curMillis-startMillis);
         long minutes = TimeUnit.MILLISECONDS.toMinutes(totalMillis);
@@ -48,11 +38,35 @@ class HistoryTracker {
         return minutes + ":" + strSeconds;
     }
 
-    long stopClock() {
-        // Called when game is paused
-        // append current time to elapsedMillis & return
-        long curMillis = System.currentTimeMillis();
-        return elapsedMillis + (curMillis-startMillis);
+    ArrayList<String> storeState(ArrayList<String> data) {
+        /**
+         * When game is saved, store everything necessary to
+         *  re-create the current game state and history
+         */
+        long timeElapsed = elapsedMillis + (System.currentTimeMillis()-startMillis);
+        data.add("timeElapsed," + timeElapsed);
+        data.add("numMoves," + numMoves);
+        data.add("lastActionRemove," + lastActionRemove);
+        // Add each HistoryObject
+        for (HistoryObject ho : history) {
+            String item = ho.originalStack + ",";
+            item += ho.newStack + ",";
+            item +=  ho.numCards;
+            data.add(item);
+        }
+        return data;
+    }
+
+    void restoreProperties(long elapsedMillis, int numMoves,
+                           boolean lastActionRemove) {
+        /**
+         * This is called to restore game properties after the
+         *  saved history has been re-created.
+         */
+        this.elapsedMillis = elapsedMillis;
+        this.numMoves = numMoves;
+        this.lastActionRemove = lastActionRemove;
+        startMillis = System.currentTimeMillis();
     }
 
     void record(HistoryObject move) {
@@ -60,10 +74,6 @@ class HistoryTracker {
         numMoves++;
         lastActionRemove = false;
         history.add(0, move);
-    }
-
-    boolean isEmpty() {
-        return history.size() == 0;
     }
 
     HistoryObject pop() {
