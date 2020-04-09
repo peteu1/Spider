@@ -11,11 +11,13 @@ public class Deck {
 
     private static final String TAG = "DECK";
     private static final int DECK_SIZE = 52, NUM_STACKS = 10;
+    public int seed;
     private Card[] deck;
     private HashMap<Integer, Drawable> mStore;
 
-    public Deck(int difficulty, HashMap<Integer, Drawable> mStore) {
+    public Deck(int difficulty, int seed, HashMap<Integer, Drawable> mStore) {
         this.mStore = mStore;
+        this.seed = seed;
         deck = createDeck(difficulty);
     }
 
@@ -32,8 +34,8 @@ public class Deck {
                 ++cardNum;
             }
         }
+        // TODO: Shuffle the cards with seed (wait until after test winning games, etc.)
         Card[] shuffledDeck = rawDeck;
-        // TODO: Shuffle the cards (wait until after test winning games, etc.)
         return shuffledDeck;
     }
 
