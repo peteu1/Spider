@@ -32,7 +32,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     public static final String GAME_STATE_FILE_NAME = "game_state.txt";
     private MainThread thread;
     private Context context;
-    private HashMap<Integer, Drawable> mStore;
     DisplayMetrics displayMetrics;
     public Master master;
     private boolean cardsInMotion;
@@ -41,9 +40,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // Constructor for new game
         super(context);
         Log.e(TAG, "New constructor called.");
-        initialize(context);
-
-        // Initialize Master (holds GameMaster and stacks)
+        HashMap<Integer, Drawable> mStore = initialize(context);
+        // Initialize Master
         master = new Master(displayMetrics, difficulty, mStore);
     }
 
@@ -51,36 +49,37 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // Constructor to restore game where it left off.
         super(context);
         Log.e(TAG, "Restore constructor called.");
-        initialize(context);
-
+        HashMap<Integer, Drawable> mStore = initialize(context);
         // Re-create master
         ArrayList<String> savedData = readSavedData();
         master = new Master(displayMetrics, mStore, savedData);
     }
 
-    private void initialize(Context context) {
+    private HashMap<Integer, Drawable> initialize(Context context) {
         // Helper method used by both constructors
         this.context = context;
         getHolder().addCallback(this);
         thread = new MainThread(getHolder(), this);
         setFocusable(true);
 
+        // Get display metrics
+        displayMetrics = new DisplayMetrics();
+        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+
         // Initialize Image HashMap
-        this.mStore = new HashMap<Integer, Drawable>();
+        HashMap<Integer, Drawable> mStore = new HashMap<Integer, Drawable>();
         Drawable cardBack = getResources().getDrawable(R.drawable.card_back, null);
         mStore.put(R.id.card_back, cardBack);
         Drawable spades = getResources().getDrawable(R.drawable.suit_spades, null);
         mStore.put(R.id.suit_spades, spades);
         Drawable hearts = getResources().getDrawable(R.drawable.suit_hearts, null);
+        // TODO: Don't load un-needed suits (based on difficulty)
         mStore.put(R.id.suit_hearts, hearts);
         Drawable diamonds = getResources().getDrawable(R.drawable.suit_diamonds, null);
         mStore.put(R.id.suit_diamonds, diamonds);
         Drawable clubs = getResources().getDrawable(R.drawable.suit_clubs, null);
         mStore.put(R.id.suit_clubs, clubs);
-
-        // Get display metrics
-        displayMetrics = new DisplayMetrics();
-        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        return mStore;
     }
 
     @Override
@@ -218,13 +217,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             e.printStackTrace();
         }
         // Get stats, add to intent & launch game won screen
-        String completedTime = master.historyTracker.getTimeElapsed();
-        int totalMoves = master.historyTracker.getNumMoves();
+        String currentTime = master.historyTracker.getTimeElapsed();
+        int currentMoves = master.historyTracker.getNumMoves();
         // TODO: Get score
         Intent i = new Intent(context, StatsActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        i.putExtra("completedTime", completedTime);
-        i.putExtra("totalMoves", totalMoves);
+        i.putExtra("difficulty", master.difficulty);
+        i.putExtra("currentTime", currentTime);
+        i.putExtra("currentMoves", currentMoves);
         context.startActivity(i);
     }
 
@@ -242,7 +242,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             writer.flush();
             writer.close();
         } catch (Exception e) {
-            // TODO: May need to check file.exists() and then file.delete()
             e.printStackTrace();
         }
     }
