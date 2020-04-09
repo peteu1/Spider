@@ -11,10 +11,15 @@ import android.widget.Button;
 
 import com.example.peter.spider.Game.GameView;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 public class MainActivity extends Activity implements View.OnClickListener {
 
     private final String TAG = "MainActivity";
-    private Button easy, medium, hard, expert;
+    private Button easy, medium, hard, expert, resume;
     private GameView gameView = null;
 
     // These are the app life-cycles for different actions:
@@ -24,10 +29,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     // gameView.surfaceCreated(), gameView.surfaceChanged()
 
     // When screen is rotated:
-    // onPause(), onSaveInstanceState(), gameView.surfaceDestroyed(),
-    // onCreate(), GameView(context, savedInstance),
-    // onRestoreInstanceState(), onResume(),
-    // gameView.surfaceCreated(), gameView.surfaceChanged()
+    // onConfigurationChanged(), gameView.updateOrientation(),
+    // gameView.surfaceDestroyed(), gameView.surfaceCreated(),
+    // gameView.surfaceChanged()
 
     // When back button is pressed:
     // onPause(), gameView.surfaceDestroyed(),
@@ -48,56 +52,77 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Log.e(TAG, "onCreate()");
         // Launches the Menu screen
         super.onCreate(savedInstanceState);
-        // TODO: Need this?
-        //requestPermissions(new String[]{WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE}, 1);
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        // TODO: Or if gameView was not in view when re-opening app/rotate screen
-        if (savedInstanceState == null) {
-            // TODO: Check record to see if there is an incomplete
-            //  game, and add (unhide) resume if so.
-            Log.e(TAG, "Loading menu...");
-            setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main);
 
-            easy = (Button) findViewById(R.id.easy);
-            medium = (Button) findViewById(R.id.medium);
-            hard = (Button) findViewById(R.id.hard);
-            expert = (Button) findViewById(R.id.expert);
+        easy = (Button) findViewById(R.id.easy);
+        medium = (Button) findViewById(R.id.medium);
+        hard = (Button) findViewById(R.id.hard);
+        expert = (Button) findViewById(R.id.expert);
+        resume = (Button) findViewById(R.id.resume);
 
-            easy.setOnClickListener(this);
-            medium.setOnClickListener(this);
-            hard.setOnClickListener(this);
-            expert.setOnClickListener(this);
+        easy.setOnClickListener(this);
+        medium.setOnClickListener(this);
+        hard.setOnClickListener(this);
+        expert.setOnClickListener(this);
+        resume.setOnClickListener(this);
+
+        // Check if there is saved game data
+        boolean activeGame = checkForActiveGame();
+        if (activeGame) {
+            resume.setVisibility(View.VISIBLE);
         } else {
-            // Restore game from savedInstanceState
-            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN);  // Make full screen
-            gameView = new GameView(this);
-            setContentView(gameView);
+            resume.setVisibility(View.GONE);
         }
+    }
+
+    private boolean checkForActiveGame() {
+        Log.e(TAG, "checkForActiveGame()");
+        File filePath = getExternalFilesDir(null);
+        File file = new File(filePath, GameView.GAME_STATE_FILE_NAME);
+        int length = (int) file.length();
+        byte[] bytes = new byte[length];
+        try {
+            FileInputStream in = new FileInputStream(file);
+            try {
+                in.read(bytes);
+            } finally {
+                in.close();
+            }
+        } catch (FileNotFoundException e) {
+            Log.e("login activity", "File not found: " + e.toString());
+            return false;
+        } catch (IOException e) {
+            Log.e("login activity", "Can not read file: " + e.toString());
+            return false;
+        }
+        Log.e(TAG, "Length saved data:" + bytes.length);
+        return bytes.length > 0;
     }
 
     @Override
     public void onClick(View view) {
         /**
          * When a button is clicked on the menu screen, the game is launched
-         *  with the corresponding difficulty
+         *  with the corresponding difficulty (or resume current game)
          */
-        int difficulty = -1;
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);  // Make full screen
+        // Create game depending on button pressed
         if(view.getId() == easy.getId()) {
-            difficulty = 1;
+            gameView = new GameView(this, 1);
         } else if(view.getId() == medium.getId()) {
-            difficulty = 2;
+            gameView = new GameView(this, 2);
         } else if(view.getId() == hard.getId()) {
-            difficulty = 3;
+            gameView = new GameView(this, 3);
         } else if(view.getId() == expert.getId()) {
-            difficulty = 4;
+            gameView = new GameView(this, 4);
+        } else if (view.getId() == resume.getId()) {
+            // Resume: restore from saved game state
+            gameView = new GameView(this);
         }
-        if (difficulty > 0) {
-            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN);  // Make full screen
-            gameView = new GameView(this, difficulty);
-            setContentView(gameView);
-        }
+        // Launch game view
+        setContentView(gameView);
     }
 
     @Override
@@ -111,7 +136,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         super.onConfigurationChanged(newConfig);
         if (gameView != null) {
             Log.e(TAG, "gameView exists!");
-            gameView.updateOrientation(this, newConfig.orientation);
+            gameView.updateOrientation(this);
             setContentView(gameView);
         } else {
             Log.e(TAG, "gameView DNE");
@@ -121,13 +146,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     protected void onPause() {
-        // This is called when app is left and returned to, not onCreate()
+        // This is called when app is left
         Log.e(TAG, "onPause()");
-        // TODO: notify gameView when saveInstanceState() is called
-        // TODO: Move this call to gameView.onSurfaceDestroyed()
-        // Only call this when: (1) screen rotates, or (2) screen does
-        //  not rotate and saveInstanceState never called [back pressed]
-        // TODO: Store screen orientation in this class
         if (gameView != null) {
             gameView.killThread();
             gameView.storeGameState();

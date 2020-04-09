@@ -38,64 +38,55 @@ import java.util.HashMap;
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private static final String TAG = "GameView";
-    private static final String GAME_STATE_FILE_NAME = "game_state.txt";
-    private MainThread thread = null;
+    public static final String GAME_STATE_FILE_NAME = "game_state.txt";
+    private MainThread thread;
     private Context context;
+    private HashMap<Integer, Drawable> mStore;
+    DisplayMetrics displayMetrics;
     public Master master;
     private boolean cardsInMotion;
 
     public GameView(Context context, int difficulty) {
+        // Constructor for new game
         super(context);
         Log.e(TAG, "New constructor called.");
-        this.context = context;
-        getHolder().addCallback(this);
-        thread = new MainThread(getHolder(), this);
-        setFocusable(true);
-
-        // Initialize Image HashMap
-        HashMap<Integer, Drawable> mStore = new HashMap<Integer, Drawable>();
-        Drawable cardBack = getResources().getDrawable(R.drawable.card_back, null);
-        mStore.put(R.id.card_back, cardBack);
+        initialize(context);
 
         // Initialize Master (holds GameMaster and stacks)
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         master = new Master(displayMetrics, difficulty, mStore);
     }
 
     public GameView(Context context) {
-        /**
-         * Constructor to restore game where it left off.
-         */
+        // Constructor to restore game where it left off.
         super(context);
         Log.e(TAG, "Restore constructor called.");
-        this.context = context;
-        getHolder().addCallback(this);
-        thread = new MainThread(getHolder(), this);
-        setFocusable(true);
+        initialize(context);
 
-        // Initialize Image HashMap
-        HashMap<Integer, Drawable> mStore = new HashMap<Integer, Drawable>();
-        Drawable cardBack = getResources().getDrawable(R.drawable.card_back, null);
-        mStore.put(R.id.card_back, cardBack);
-
-        // Initialize Master (holds GameMaster and stacks)
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         // Re-create master
         ArrayList<String> savedData = readSavedData();
         master = new Master(displayMetrics, mStore, savedData);
     }
 
-    public void updateOrientation(Context context, int orientation) {
+    private void initialize(Context context) {
+        // Helper method used by both constructors
         this.context = context;
-        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getHolder().addCallback(this);
+        thread = new MainThread(getHolder(), this);
+        setFocusable(true);
+
+        // Initialize Image HashMap
+        this.mStore = new HashMap<Integer, Drawable>();
+        Drawable cardBack = getResources().getDrawable(R.drawable.card_back, null);
+        mStore.put(R.id.card_back, cardBack);
+
+        // Get display metrics
+        displayMetrics = new DisplayMetrics();
         ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        boolean portrait = (orientation == Configuration.ORIENTATION_PORTRAIT);
-        master.updateOrientation(displayMetrics, portrait);
     }
 
     private ArrayList<String> readSavedData() {
+        // Read game state data from file
+        Log.e(TAG, "readSavedData()");
         File filePath = context.getExternalFilesDir(null);
         File file = new File(filePath, GAME_STATE_FILE_NAME);
         int length = (int) file.length();
@@ -142,17 +133,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         Log.e(TAG, "surfaceChanged()");
     }
 
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.e(TAG, "surfaceDestroyed()");
+    }
+
+    @Override
+    public void draw(Canvas canvas) {
+        // This is called continuously right after update() is called
+        super.draw(canvas);
+        if (canvas != null) {
+            canvas.drawColor(Color.GREEN);  // fill background
+            master.draw(canvas);
+        }
+    }
+
     public void killThread() {
         if (thread != null) {
             thread.setRunning(false);
             thread = null;
         }
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.e(TAG, "surfaceDestroyed()");
-//        this.killThread();  // Stop the thread
     }
 
     @Override
@@ -182,14 +182,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     cardsInMotion = false;
                     if (gameOver) {
                         // TODO: Stop clock
-                        Log.e(TAG, "You win!");
-                        Toast.makeText(context, "You Win!", Toast.LENGTH_SHORT).show();
-                        // TODO:  go to game won screen, show stats
-
-                        // Return to home screen
-                        Intent i = new Intent(context, MainActivity.class);
-                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        context.startActivity(i);
+                        gameWon();
                     }
                 } else {
                     // TODO: Better approach than hard-coding some of these?
@@ -223,26 +216,34 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         return true; //super.onTouchEvent(event) || handled;
     }
 
+    public void updateOrientation(Context context) {
+        // Called when the screen is rotated
+        this.context = context;
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        master.updateOrientation(displayMetrics);
+    }
+
     public void update() {
         // This is called continuously right before draw() is called
     }
 
-    @Override
-    public void draw(Canvas canvas) {
-        // This is called continuously right after update() is called
-        super.draw(canvas);
-        if (canvas != null) {
-            canvas.drawColor(Color.GREEN);  // fill background
-            master.draw(canvas);
-        }
+    private void gameWon() {
+        /**
+         * Called when the game is won
+         */
+        Log.e(TAG, "You win!");
+        Toast.makeText(context, "You Win!", Toast.LENGTH_SHORT).show();
+        // TODO: go to game won screen, show stats
+        // TODO: delete GAME_STATE_FILE_NAME
+        // Return to home screen
+        Intent i = new Intent(context, MainActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(i);
     }
 
     public void storeGameState() {
-        /**
-         * Called when surfaceDestroyed() is called after (1) screen
-         *  rotation, or (2) back pressed.
-         * - Store all game data
-         */
+        // Called from onPause(), stores game state data to file.
         Log.e(TAG, "storeGameState()");
         ArrayList<String> gameData = master.getGameState();
         File filePath = context.getExternalFilesDir(null);
