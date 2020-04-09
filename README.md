@@ -5,25 +5,34 @@ Set-up:
 - From AndroidStudio, open the outer-most directory (Spider) as the project.
 - Allow AndroidStudio to configure all the gradle stuff, then restart the program.
 
-Considerations:
-- Not sure if we should add all the gradle stuff to the gitignore, and let our own machines configure it on its own. This part I don't know anything about. But I got it set-up finally on new machine (with having to let it change those gradle/manifest/settings files) and fixed the app and can run/play it on my android.
-
 New features needed:
-- Timer
-- Score
-- Update rules and add option to show rules from main screen and within gameView
+- Make layous look nicer
+	- Main menu (res/layout/activity_main.xml)
+	- Stats menu (res/layout/activity_stats.xml)
+		* Cheat: tap bottom right side of screen to win game (for testing stats menu)
+- Score (I just need to create the algorithm)
+- Option in main menu to show rules
 - Hints
-- MainActivity.onPause(): save state
-- MainActivity.onResume(): restore saved data
-- Real card images/suits
+- Make the front of the cards look nicer (bigger number, big suit image on body)
 - Animations for: draw new cards (card moving to each stack), single tap of screen (card moving from stack to stack), completed stack (going up to top left)
-- Visual response to illegal single tap
-- Database to track stats
+- Visual response to illegal single tap (card spins if it's tapped but can't go anywhere)
 
 
 -- Rules --
 How to Play:
-- blah blah
+- Select a difficulty
+	- Easy = 1 suit, Medium = 2 suits, Hard = 3 suits, Expert = 4 suits
+- This game has the same rules as spider solitaire, but is set up like normal solitaire.
+- Cards can be placed on any card with one higher value, or an empty stack.
+- Card stacks can only be moved when the cards below are sequentially decreasing, and of the same suit.
+- When 13 cards of the same suit, in order from K -> A, are created, a complete set is formed.
+- When all 52 cards are completed, the game is won.
+- Tap the hidden cards in the top right to draw 8 new cards (one is assigned to each stack).
+- Press the Undo button in the bottom left to undo the previous move.
+- If Undo is pressed twice in a row, only one move is relinquished. Additional consecutive undo's will not decrease move count.
+
+Tips:
+- A single tap of a card or stack of cards will move it to the most optimal stack.
 
 Scoring:
 - TBD
