@@ -27,7 +27,7 @@ public class Stack {
     private int cardWidth, cardHeight, stackHeight, numCards;
     // Game properties
     public Card head; // This will be the first node in the stack, w/ pointer to next
-    boolean moving;  // true if the card is currently being moved
+    boolean moving;  // true if the stack is currently being moved
 
     public Stack(int stackId, Card head) {
         this.stackId = stackId;

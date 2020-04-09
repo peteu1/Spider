@@ -23,10 +23,10 @@ public class Master {
      *  be the main dictator between actions received and updates to the game
      */
     private static final String TAG = "Master";
-    public int difficulty;
+    private int difficulty;
     private int seed;
-    public Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
-    public HistoryTracker historyTracker;
+    private Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
+    HistoryTracker historyTracker;
     private Paint textPaint;
 
     // Top of completed and un-played stacks
@@ -34,15 +34,15 @@ public class Master {
     private static final int STACK_SPACING = 5;  // spacing between stacks
     // Left/right margins: 0.05 screen width
     private static final double EDGE_MARGIN = 0.05;
-    public int screenWidth, screenHeight, stackWidth, cardWidth;
+    int screenWidth, screenHeight, stackWidth, cardWidth;
     private float tappedX, tappedY;  // Store initial touch coords to see if screen was tapped
 
     // The following are used to track a moving stack
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
 
-    public Master(DisplayMetrics displayMetrics, int difficulty,
-                  HashMap<Integer, Drawable> mStore) {
+    Master(DisplayMetrics displayMetrics, int difficulty,
+           HashMap<Integer, Drawable> mStore) {
         /**
          * Constructor for starting a new game.
          */
@@ -51,8 +51,8 @@ public class Master {
         initialize(displayMetrics, mStore);
     }
 
-    public Master(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore,
-                  ArrayList<String> savedData) {
+    Master(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore,
+           ArrayList<String> savedData) {
         /**
          * Constructor for resuming a saved game.
          */
@@ -137,7 +137,7 @@ public class Master {
         stacks[9].assignPosition((int) (0.1*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
     }
 
-    public void updateOrientation(DisplayMetrics displayMetrics) {
+    void updateOrientation(DisplayMetrics displayMetrics) {
         /**
          * This is called when the screen is rotated, re-arrange stack spacing
          */
@@ -149,7 +149,7 @@ public class Master {
         arrangeStacks();
     }
 
-    public void draw(Canvas canvas) {
+    void draw(Canvas canvas) {
         /**
          * This method is constantly being called
          * Every stack draws itself where its supposed to be
@@ -173,7 +173,7 @@ public class Master {
         canvas.drawText(time, (int) (screenWidth/2) - 25, screenHeight-40, textPaint);
     }
 
-    public boolean legalTouch(float x, float y) {
+    boolean legalTouch(float x, float y) {
         /**
          * - Gets called when the screen is touched
          * - Finds the card that was touched
@@ -205,7 +205,7 @@ public class Master {
         return false;
     }
 
-    public void moveStack(float x, float y) {
+    void moveStack(float x, float y) {
         // Updates position of moving stack while dragging finger
         if (movingStack != null) {
             movingStack.assignPosition(x, y);
@@ -238,7 +238,7 @@ public class Master {
         }
     }
 
-    public boolean endStackMotion(float x, float y) {
+    boolean endStackMotion(float x, float y) {
         /**
          * This is only called when cards are in motion and touch released
          * Checks if valid drop
@@ -340,7 +340,7 @@ public class Master {
         return false;
     }
 
-    public boolean undo() {
+    boolean undo() {
         /**
          * Un-does a move when undo is clicked
          */
@@ -385,7 +385,7 @@ public class Master {
 
     // Methods for saving data and restoring saved game state
 
-    public ArrayList<String> getGameState() {
+    ArrayList<String> getGameState() {
         /**
          * Compiles all game information necessary to re-create current game state.
          * - Information is stored in the file: GameView.GAME_STATE_FILE_NAME
@@ -406,8 +406,8 @@ public class Master {
         return data;
     }
 
-    public void restoreHistory(ArrayList<HistoryObject> history, long timeElapsed,
-                               int numMoves, boolean lastActionRemove) {
+    private void restoreHistory(ArrayList<HistoryObject> history, long timeElapsed,
+                                int numMoves, boolean lastActionRemove) {
         /**
          * Restores game to saved game state.
          */
