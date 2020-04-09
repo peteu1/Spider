@@ -138,7 +138,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             setContentView(gameView);
         } else {
             Log.e(TAG, "gameView DNE");
-            // TODO: Set content view to menu? Or do nothing
         }
     }
 
