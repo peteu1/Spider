@@ -125,6 +125,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
+        // Avoid onCreate() call when screen is rotated
         Log.e(TAG, "onConfigurationChanged()");
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             Log.e(TAG,"LANDSCAPE");
@@ -143,7 +144,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     protected void onPause() {
-        // This is called when app is left
+        // Called when app is left. Save the state of the game.
         Log.e(TAG, "onPause()");
         if (gameView != null) {
             gameView.killThread();
@@ -153,24 +154,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     @Override
-    protected void onResume() {
-        // TODO: Remove
-        Log.e(TAG, "onResume()");
-        super.onResume();
-    }
-
-    @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-        // Save UI state changes to the savedInstanceState.
-        // This bundle will be passed to onCreate if the process is
-        // killed and restarted.
+        // NOTE: Not used, game is saved to file from onPause().
         Log.e(TAG, "onSaveInstanceState()");
         super.onSaveInstanceState(savedInstanceState);
     }
 
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
-        // TODO: Remove
+        // NOTE: Not used, saved game is retrieved when "Resume" is clicked.
         Log.e(TAG, "onRestoreInstanceState()");
         super.onRestoreInstanceState(savedInstanceState);
     }

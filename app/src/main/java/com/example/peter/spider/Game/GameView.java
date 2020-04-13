@@ -43,7 +43,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // Constructor for new game
         super(context);
         Log.e(TAG, "New constructor called.");
-        HashMap<Integer, Drawable> mStore = initialize(context);
+        HashMap<Integer, Drawable> mStore = initialize(context, difficulty);
         // Initialize Master
         master = new Master(screenWidth, screenHeight, difficulty, mStore);
     }
@@ -52,9 +52,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // Constructor to restore game where it left off.
         super(context);
         Log.e(TAG, "Restore constructor called.");
-        HashMap<Integer, Drawable> mStore = initialize(context);
-        // Re-create master
+        // Get saved data from file
         ArrayList<String> savedData = readSavedData();
+        String line = savedData.get(0);
+        String[] data = line.split(",");
+        int difficulty = Integer.parseInt(data[1]);
+        HashMap<Integer, Drawable> mStore = initialize(context, difficulty);
+        // Re-create master
         master = new Master(screenWidth, screenHeight, mStore, savedData);
     }
 
@@ -65,7 +69,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         screenHeight = displayMetrics.heightPixels;
     }
 
-    private HashMap<Integer, Drawable> initialize(Context context) {
+    private HashMap<Integer, Drawable> initialize(Context context,
+                                                  int difficulty) {
         // Helper method used by both constructors
         this.context = context;
         getHolder().addCallback(this);
@@ -80,13 +85,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         mStore.put(R.id.card_back, cardBack);
         Drawable spades = getResources().getDrawable(R.drawable.suit_spades, null);
         mStore.put(R.id.suit_spades, spades);
-        Drawable hearts = getResources().getDrawable(R.drawable.suit_hearts, null);
-        // TODO: Don't load un-needed suits (based on difficulty)
-        mStore.put(R.id.suit_hearts, hearts);
-        Drawable diamonds = getResources().getDrawable(R.drawable.suit_diamonds, null);
-        mStore.put(R.id.suit_diamonds, diamonds);
-        Drawable clubs = getResources().getDrawable(R.drawable.suit_clubs, null);
-        mStore.put(R.id.suit_clubs, clubs);
+        // Load more suits depending on difficulty
+        if (difficulty > 1) {
+            Drawable hearts = getResources().getDrawable(R.drawable.suit_hearts, null);
+            mStore.put(R.id.suit_hearts, hearts);
+        }
+        if (difficulty > 2) {
+            Drawable diamonds = getResources().getDrawable(R.drawable.suit_diamonds, null);
+            mStore.put(R.id.suit_diamonds, diamonds);
+        }
+        if (difficulty > 3) {
+            Drawable clubs = getResources().getDrawable(R.drawable.suit_clubs, null);
+            mStore.put(R.id.suit_clubs, clubs);
+        }
         return mStore;
     }
 
