@@ -164,6 +164,7 @@ public class Master {
                 if (arrived) {
                     updateStacks(animationDestination, false);
                     locked = false;
+                    animationDestination = -1;
                 } else {
                     movingStack.drawStack(canvas);
                 }
@@ -278,15 +279,19 @@ public class Master {
 
     private boolean updateStacks(int newStackIdx, boolean showAnimation) {
         /**
-         * Called after finger is released (endStackMotion). \
-         * The current moving stack is added to the specified stack and
-         *  history is recorded.
+         * - Called after finger is released (endStackMotion).
+         * - Current moving stack is added to the specified stack.
+         * - Logic for the move has already been checked, so just update
+         *   the stacks and record the move if new stack is different from
+         *   original.
          * @param showAnimation (boolean): when stack is tapped, animate stack motion
          * @return true if game is over; false otherwise.
          */
-        // TODO: Also show animation if illegal drop
+        // TODO: Show animation if illegal drop (back to original stack)
+        // TODO: Show animation for distribute cards
+        // TODO: Show animation for undo move
         if (showAnimation) {
-            // TODO: Get coordinates of moving stack destination
+            // Get coordinates of stack destination
             int left = stacks[newStackIdx].left;
             int top = stacks[newStackIdx].getNextCardY();
             movingStack.beginAnimation(left, top);

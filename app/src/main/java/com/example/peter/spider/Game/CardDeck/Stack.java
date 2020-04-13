@@ -29,6 +29,7 @@ public class Stack {
     public Card head; // This will be the first node in the stack, w/ pointer to next
     boolean moving;  // true if the stack is currently being moved
     int destX, destY;  // For animated moving stack, this is where it's heading
+    final int FRAME_RATE = 20;
 
     public Stack(int stackId, Card head) {
         this.stackId = stackId;
@@ -91,24 +92,42 @@ public class Stack {
 
     public boolean incrementAnimation() {
         /**
-         * (For MOVING STACK only)
-         * Returns true when the animation is finished, arrived destination
+         * (For MOVING STACK only)  Update the position of stack based
+         *  on angle to destination to show animation.
+         * @return true when the animation is finished/arrived at
+         *      destination; false otherwise
          */
-        int frameRate = 30;
-        // TODO: Trigonometry... :/
-        // TODO: Set angle and increment X/Y based on angle stack needs to travel
-        if (left > destX) {
-            left-=frameRate;
-        } else if (left < destX) {
-            left+=frameRate;
+        double animationAngle = Math.atan2((top-destY), (left-destX));
+        System.out.println("Angle: " + animationAngle);
+        if (animationAngle > 0) {
+            // moving upwards (or straight right)
+            if (animationAngle > (Math.PI / 2)) {
+                // moving up/right (or straight right)
+                // NOTE: Add because (angle - PI) will be negative
+                top += (animationAngle - Math.PI) * FRAME_RATE;
+                left += (animationAngle - (Math.PI/2)) * FRAME_RATE;
+            } else {
+                // moving up/left (or straight up)
+                top -= (animationAngle * FRAME_RATE);
+                // NOTE: Add because (angle - PI/2) will be negative
+                left += (animationAngle - (Math.PI/2)) * FRAME_RATE;
+            }
+        } else { // if (animationAngle < 0)
+            // moving downwards (or straight left)
+            if (animationAngle > (-Math.PI / 2)) {
+                // moving down/left (or straight left)
+                // NOTE: Subtract because angle is negative
+                top -= (animationAngle * FRAME_RATE);
+                left -= (animationAngle + (Math.PI/2)) * FRAME_RATE;
+            } else {
+                // moving down/right (or straight down)
+                top += (animationAngle + Math.PI) * FRAME_RATE;
+                // NOTE: Subtract because (angle - PI/2) will be negative
+                left -= (animationAngle + (Math.PI/2)) * FRAME_RATE;
+            }
         }
-        if (top > destY) {
-            top-=frameRate;
-        } else if (top < destY) {
-            top+=frameRate;
-        }
-        return (left >= (destX-frameRate) && left <= (destX+frameRate)) &&
-                (top >= (destY-frameRate) && top <= (destY+frameRate));
+        return (left >= (destX-FRAME_RATE) && left <= (destX+FRAME_RATE)) &&
+                (top >= (destY-FRAME_RATE) && top <= (destY+FRAME_RATE));
     }
 
     public void drawStack(Canvas canvas) {
