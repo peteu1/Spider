@@ -12,13 +12,13 @@ New features needed:
 		* Cheat: tap bottom right side of screen to win game (for testing stats menu)
 - Score (I just need to create the algorithm)
 - Option in main menu to show rules
-- Hints (use animation to show stack move for hint; don't modify game; set master.locked = true while hint animation showing)
 - Make the front of the cards look nicer (bigger number, big suit image on body)
+- Hints (use animation to show stack move for hint; don't modify game; set master.locked = true while hint animation showing)
 - Animations for:
-	- single tap of screen (card moving from stack to stack) [implemented, but need math]
 	- draw new cards (card moving to each stack), 
 	- completed stack (going up to top left)
-- Visual response to illegal single tap (card spins if it's tapped but can't go anywhere)
+	- show hints
+- Visual response to illegal single tap (cards in stack spin if tapped but can't go anywhere)
 
 
 -- Rules --
