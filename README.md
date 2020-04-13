@@ -19,6 +19,7 @@ New features needed:
 	- completed stack (going up to top left)
 	- show hints
 - Visual response to illegal single tap (cards in stack spin if tapped but can't go anywhere)
+- Generate seed and shuffle deck according to random seed
 
 
 -- Rules --
