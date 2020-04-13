@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -34,7 +35,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private Context context;
     DisplayMetrics displayMetrics;
     public Master master;
+    private Paint textPaint;
     private boolean cardsInMotion;
+    private int screenWidth, screenHeight;
 
     public GameView(Context context, int difficulty) {
         // Constructor for new game
@@ -42,7 +45,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         Log.e(TAG, "New constructor called.");
         HashMap<Integer, Drawable> mStore = initialize(context);
         // Initialize Master
-        master = new Master(displayMetrics, difficulty, mStore);
+        master = new Master(screenWidth, screenHeight, difficulty, mStore);
     }
 
     public GameView(Context context) {
@@ -52,7 +55,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         HashMap<Integer, Drawable> mStore = initialize(context);
         // Re-create master
         ArrayList<String> savedData = readSavedData();
-        master = new Master(displayMetrics, mStore, savedData);
+        master = new Master(screenWidth, screenHeight, mStore, savedData);
+    }
+
+    private void updateDisplayMetrics() {
+        displayMetrics = new DisplayMetrics();
+        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        screenWidth = displayMetrics.widthPixels;
+        screenHeight = displayMetrics.heightPixels;
     }
 
     private HashMap<Integer, Drawable> initialize(Context context) {
@@ -61,11 +71,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         getHolder().addCallback(this);
         thread = new MainThread(getHolder(), this);
         setFocusable(true);
-
-        // Get display metrics
-        displayMetrics = new DisplayMetrics();
-        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-
+        // Get display metrics (screen width & height)
+        updateDisplayMetrics();
+        initPaints();
         // Initialize Image HashMap
         HashMap<Integer, Drawable> mStore = new HashMap<Integer, Drawable>();
         Drawable cardBack = getResources().getDrawable(R.drawable.card_back, null);
@@ -81,6 +89,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         mStore.put(R.id.suit_clubs, clubs);
         return mStore;
     }
+
+    private void initPaints() {
+        textPaint = new Paint();
+        textPaint.setColor(Color.rgb(30,30,30));
+        textPaint.setTextSize(30);
+    }
+
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -115,7 +130,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // This is called continuously right after update() is called
         super.draw(canvas);
         if (canvas != null) {
-            canvas.drawColor(Color.GREEN);  // fill background
+            // Fill background
+            canvas.drawColor(getResources().getColor(R.color.colorBackground));
+            // Draw move count
+            String moves = String.valueOf(master.historyTracker.getNumMoves());
+            canvas.drawText("Moves: " + moves, 15, textPaint.getTextSize()+5, textPaint);
+            // Draw menu "button" (TODO: Properly center text)
+            canvas.drawText("Menu", (int) (screenWidth/2) - 25, textPaint.getTextSize()+5, textPaint);
+            // TODO: Use undo icon instead
+            canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
+            // Draw time - bottom center
+            String time = master.historyTracker.getTimeElapsed();
+            canvas.drawText(time, (int) (screenWidth/2) - 25, screenHeight-40, textPaint);
+            // Tell master to draw the stacks
             master.draw(canvas);
         }
     }
@@ -195,9 +222,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     public void updateOrientation(Context context) {
         // Called when the screen is rotated
         this.context = context;
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        ((Activity) getContext()).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        master.updateOrientation(displayMetrics);
+        updateDisplayMetrics();
+        master.updateOrientation(screenWidth, screenHeight);
     }
 
     public void update() {

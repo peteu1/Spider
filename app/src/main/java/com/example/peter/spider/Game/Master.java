@@ -27,7 +27,6 @@ public class Master {
     private int seed;
     private Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
     HistoryTracker historyTracker;
-    private Paint textPaint;
 
     // Top of completed and un-played stacks
     private static final int NON_PLAYING_STACK_Y = 50;
@@ -41,17 +40,19 @@ public class Master {
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
 
-    Master(DisplayMetrics displayMetrics, int difficulty,
+    Master(int screenWidth, int screenHeight, int difficulty,
            HashMap<Integer, Drawable> mStore) {
         /**
          * Constructor for starting a new game.
          */
         this.difficulty = difficulty;
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
         generateSeed();
-        initialize(displayMetrics, mStore);
+        initialize(mStore);
     }
 
-    Master(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore,
+    Master(int screenWidth, int screenHeight, HashMap<Integer, Drawable> mStore,
            ArrayList<String> savedData) {
         /**
          * Constructor for resuming a saved game.
@@ -87,7 +88,9 @@ public class Master {
             }
         }
         // Re-initialize stacks/etc to initial set-up
-        initialize(displayMetrics, mStore);
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
+        initialize(mStore);
         // Restore historyTracker and re-create all moves
         restoreHistory(history, timeElapsed, numMoves, lastActionRemove);
     }
@@ -97,25 +100,16 @@ public class Master {
         this.seed = 1;
     }
 
-    private void initialize(DisplayMetrics displayMetrics, HashMap<Integer, Drawable> mStore) {
+    private void initialize(HashMap<Integer, Drawable> mStore) {
         /**
          * Constuctor helper for both new master and restore master constructors
          */
         Deck deck = new Deck(difficulty, seed, mStore);
         stacks = deck.dealStacks();
         historyTracker = new HistoryTracker();
-        initPaints();
-        screenWidth = displayMetrics.widthPixels;
-        screenHeight = displayMetrics.heightPixels;
         stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
         cardWidth = stackWidth - STACK_SPACING;
         arrangeStacks();
-    }
-
-    private void initPaints() {
-        textPaint = new Paint();
-        textPaint.setColor(Color.rgb(30,30,30));
-        textPaint.setTextSize(30);
     }
 
     private void arrangeStacks() {
@@ -137,12 +131,12 @@ public class Master {
         stacks[9].assignPosition((int) (0.1*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
     }
 
-    void updateOrientation(DisplayMetrics displayMetrics) {
+    void updateOrientation(int screenWidth, int screenHeight) {
         /**
          * This is called when the screen is rotated, re-arrange stack spacing
          */
-        screenWidth = displayMetrics.widthPixels;
-        screenHeight = displayMetrics.heightPixels;
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
         stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
         cardWidth = stackWidth - STACK_SPACING;
         // Re-arrange stacks with new dimensions
@@ -161,16 +155,6 @@ public class Master {
             // NOTE: Draw moving stack last so that it's on top
             movingStack.drawStack(canvas);
         }
-        // Draw move count
-        String moves = String.valueOf(historyTracker.getNumMoves());
-        canvas.drawText("Moves: " + moves, 15, textPaint.getTextSize()+5, textPaint);
-        // Draw menu "button" (TODO: Properly center text)
-        canvas.drawText("Menu", (int) (screenWidth/2) - 25, textPaint.getTextSize()+5, textPaint);
-        // TODO: Use undo icon instead
-        canvas.drawText("UNDO", 15, screenHeight-40, textPaint);
-        // Draw time - bottom center
-        String time = historyTracker.getTimeElapsed();
-        canvas.drawText(time, (int) (screenWidth/2) - 25, screenHeight-40, textPaint);
     }
 
     boolean legalTouch(float x, float y) {
@@ -409,11 +393,9 @@ public class Master {
     private void restoreHistory(ArrayList<HistoryObject> history, long timeElapsed,
                                 int numMoves, boolean lastActionRemove) {
         /**
-         * Restores game to saved game state.
+         * Restores game to saved game state by looping through all moves in history
+         *  and re-doing them. Also restores historyTracker to previous state.
          */
-        // Create new history tracker
-        historyTracker = new HistoryTracker();
-        // TODO: Redo all moves in history (opposite of undo)
         // Loop backwards because most recent move first
         for (int i=history.size()-1; i>=0; --i) {
             HistoryObject move = history.get(i);
