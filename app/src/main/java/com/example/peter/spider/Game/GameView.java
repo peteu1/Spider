@@ -156,6 +156,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        // Can't do anything while card stack is being animated
+        if (master.locked) {
+            return true;
+        }
         final float x = event.getX();
         final float y = event.getY();
         switch (event.getAction()) {
@@ -180,7 +184,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     boolean gameOver = master.endStackMotion(x, y);
                     cardsInMotion = false;
                     if (gameOver) {
-                        // TODO: Stop clock
                         gameWon();
                     }
                 } else {

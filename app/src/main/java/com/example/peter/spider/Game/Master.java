@@ -39,6 +39,9 @@ public class Master {
     // The following are used to track a moving stack
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
+    // Can't do anything while card stack is being animated
+    boolean locked = false;
+    int animationDestination = -1;
 
     Master(int screenWidth, int screenHeight, int difficulty,
            HashMap<Integer, Drawable> mStore) {
@@ -152,8 +155,19 @@ public class Master {
             stack.drawStack(canvas);
         }
         if (movingStack != null) {
-            // NOTE: Draw moving stack last so that it's on top
-            movingStack.drawStack(canvas);
+            if (!locked) {
+                // Draw moving stack as finger drags
+                movingStack.drawStack(canvas);
+            } else {
+                // Update animation/position of moving stack
+                boolean arrived = movingStack.incrementAnimation();
+                if (arrived) {
+                    updateStacks(animationDestination, false);
+                    locked = false;
+                } else {
+                    movingStack.drawStack(canvas);
+                }
+            }
         }
     }
 
@@ -231,8 +245,10 @@ public class Master {
          */
         int addTo = originalStack;  // Indicates which stack id to add moving stack to
         // Check if screen was tapped
+        boolean tapped = false;
         if (x == tappedX && y == tappedY) {
             addTo = processTap();
+            tapped = true;
         } else {
             // Screen was clicked and dragged
             int legal = -1;
@@ -257,40 +273,53 @@ public class Master {
                 // else, didn't land here, keep looping
             }
         }
-        return updateStacks(addTo);
+        return updateStacks(addTo, tapped);
     }
 
-    private boolean updateStacks(int newStackIdx) {
+    private boolean updateStacks(int newStackIdx, boolean showAnimation) {
         /**
          * Called after finger is released (endStackMotion). \
          * The current moving stack is added to the specified stack and
          *  history is recorded.
+         * @param showAnimation (boolean): when stack is tapped, animate stack motion
+         * @return true if game is over; false otherwise.
          */
-        Stack completedStack = stacks[newStackIdx].addStack(movingStack);
-        // Move completed stack to stacks[9] if full stack was made
-        if (completedStack != null) {
-            stacks[9].addStack(completedStack);
-            if (stacks[9].getNumCards() == 52) {
-                movingStack = null;
-                return true;
-            }
-        }
-        // Check if a legal move occurred
-        if (newStackIdx != originalStack) {
-            // Record the move
-            HistoryObject move = new HistoryObject();
-            move.recordMove(movingStack.head.cardsBelow(), originalStack, newStackIdx);
+        // TODO: Also show animation if illegal drop
+        if (showAnimation) {
+            // TODO: Get coordinates of moving stack destination
+            int left = stacks[newStackIdx].left;
+            int top = stacks[newStackIdx].getNextCardY();
+            movingStack.beginAnimation(left, top);
+            locked = true;
+            animationDestination = newStackIdx;
+            return false;
+        } else {
+            Stack completedStack = stacks[newStackIdx].addStack(movingStack);
+            // Move completed stack to stacks[9] if full stack was made
             if (completedStack != null) {
-                move.completedStackIds.add(newStackIdx);
+                stacks[9].addStack(completedStack);
+                if (stacks[9].getNumCards() == 52) {
+                    movingStack = null;
+                    return true;
+                }
             }
-            // Flip over newly revealed card
-            boolean cardFlipped = stacks[originalStack].flipBottomCard();
-            move.cardRevealed = cardFlipped;
-            historyTracker.record(move);
-            Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.numCards);
+            // Check if a legal move occurred
+            if (newStackIdx != originalStack) {
+                // Record the move
+                HistoryObject move = new HistoryObject();
+                move.recordMove(movingStack.head.cardsBelow(), originalStack, newStackIdx);
+                if (completedStack != null) {
+                    move.completedStackIds.add(newStackIdx);
+                }
+                // Flip over newly revealed card
+                boolean cardFlipped = stacks[originalStack].flipBottomCard();
+                move.cardRevealed = cardFlipped;
+                historyTracker.record(move);
+                Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.numCards);
+            }
+            movingStack = null;
+            return false;
         }
-        movingStack = null;
-        return false;
     }
 
     private boolean distributeNewCards() {
@@ -306,6 +335,7 @@ public class Master {
         for (int i=0; i<8; ++i) {
             nextCard = currentCard.next;  // Save next card
             currentCard.next = null;
+            // TODO: Animation
             Stack completedStack = stacks[i].addCard(currentCard);
             if (completedStack != null) {
                 // Completed stack was created
@@ -315,8 +345,6 @@ public class Master {
             }
             currentCard = nextCard;
         }
-//        move.recordMove(movingStack.head, 8, -3);
-        // TODO: Verify this works
         move.recordMove(8, 8, -3);
         historyTracker.record(move);
         movingStack = null;
@@ -404,7 +432,7 @@ public class Master {
             if (move.originalStack == 8) {
                 distributeNewCards();
             } else {
-                updateStacks(move.newStack);
+                updateStacks(move.newStack, false);
             }
         }
         // Restores time elapsed, numMoves in historyTracker

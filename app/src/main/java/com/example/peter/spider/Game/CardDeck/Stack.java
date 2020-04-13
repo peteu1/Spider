@@ -28,6 +28,7 @@ public class Stack {
     // Game properties
     public Card head; // This will be the first node in the stack, w/ pointer to next
     boolean moving;  // true if the stack is currently being moved
+    int destX, destY;  // For animated moving stack, this is where it's heading
 
     public Stack(int stackId, Card head) {
         this.stackId = stackId;
@@ -67,12 +68,47 @@ public class Stack {
 
     public void assignPosition(float x, float y) {
         /**
-         * Update position of MOVING STACK (only called for stack in motion)
+         * (For MOVING STACK only)
+         * Update position as finger drags
          */
         // Adjust display location so that finger is in bottom right corner
         left = (int) x - cardWidth - 10;
         top = (int) y - stackHeight - 10;
         // NOTE: -10 to get a little buffer above the fatness of your finger
+    }
+
+    public int getNextCardY() {
+        // When animating to this stack, get top of where next stack would go
+
+        return top + stackHeight - cardHeight + VERTICAL_CARD_SPACING;
+    }
+
+    public void beginAnimation(int X, int Y) {
+        // When a moving stack is set in motion for animation, record destination
+        destX = X;
+        destY = Y;
+    }
+
+    public boolean incrementAnimation() {
+        /**
+         * (For MOVING STACK only)
+         * Returns true when the animation is finished, arrived destination
+         */
+        int frameRate = 30;
+        // TODO: Trigonometry... :/
+        // TODO: Set angle and increment X/Y based on angle stack needs to travel
+        if (left > destX) {
+            left-=frameRate;
+        } else if (left < destX) {
+            left+=frameRate;
+        }
+        if (top > destY) {
+            top-=frameRate;
+        } else if (top < destY) {
+            top+=frameRate;
+        }
+        return (left >= (destX-frameRate) && left <= (destX+frameRate)) &&
+                (top >= (destY-frameRate) && top <= (destY+frameRate));
     }
 
     public void drawStack(Canvas canvas) {
