@@ -1,84 +1,131 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorBackground"
     tools:context=".Game.StatsActivity">
-    <LinearLayout
+
+    <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-        <TextView android:text="Stats:"
+        android:layout_height="wrap_content">
+
+        <TextView  android:id="@+id/stats_label"
+            android:text="Statistics"
+            android:textSize="30sp"
             android:paddingTop="15dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="30dp"/>
-        <TableLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-            <TableRow>
-                <TextView android:text="Current"
-                    android:paddingTop="15dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="30dp"/>
-                <TextView android:text="Rank"
-                    android:paddingTop="15dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="30dp"/>
-                <TextView android:text="Best"
-                    android:paddingTop="15dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="30dp"/>
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent" />
+
+        <TextView  android:id="@+id/difficulty_label"
+            android:text="Difficulty: "
+            android:textSize="25sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintLeft_toLeftOf="@+id/stats_table"
+            app:layout_constraintTop_toBottomOf="@+id/stats_label"
+            android:layout_marginTop="25dp" />
+        <TextView  android:id="@+id/tv_difficulty"
+            android:text="null"
+            android:textSize="25sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="@+id/difficulty_label"
+            app:layout_constraintLeft_toRightOf="@+id/difficulty_label"
+            android:layout_marginStart="15dp" />
+
+        <TextView  android:id="@+id/games_played_label"
+            android:text="Games Played: "
+            android:textSize="25sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintLeft_toLeftOf="@+id/difficulty_label"
+            app:layout_constraintTop_toBottomOf="@+id/difficulty_label"
+            android:layout_marginTop="10dp"/>
+        <TextView  android:id="@+id/tv_games_played"
+            android:text="null"
+            android:textSize="25sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintLeft_toRightOf="@+id/games_played_label"
+            app:layout_constraintTop_toTopOf="@+id/games_played_label"
+            android:layout_marginStart="15dp" />
+
+        <TableLayout  android:id="@+id/stats_table"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/games_played_label"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:layout_marginTop="10dp">
+            <TableRow
+                android:paddingTop="15dp"
+                android:paddingVertical="15dp">
+                <TextView
+                    android:text="Current"
+                    android:textSize="30sp"
+                    android:layout_marginEnd="15dp" />
+                <TextView
+                    android:text="Rank"
+                    android:textSize="30sp"
+                    android:layout_marginEnd="15dp" />
+                <TextView
+                    android:text="Best"
+                    android:textSize="30sp"
+
+                    android:layout_marginEnd="15dp"/>
             </TableRow>
             <TableRow>
-                <TextView android:text="0"
-                    android:id="@+id/currentTime"
-                    android:paddingLeft="10dp"
-                    android:textSize="25dp"
+                <TextView  android:id="@+id/currentTime"
+                    android:text="0"
+                    android:textSize="25sp"
                     android:layout_gravity="center"
                     android:textStyle="bold" />
-                <TextView android:text="0"
-                    android:id="@+id/rankTime"
-                    android:paddingLeft="10dp"
-                    android:textSize="25dp"
+                <TextView  android:id="@+id/rankTime"
+                    android:text="0"
+                    android:textSize="25sp"
                     android:layout_gravity="center"
                     android:textStyle="bold" />
-                <TextView android:text="0"
-                    android:id="@+id/bestTime"
-                    android:paddingLeft="10dp"
-                    android:textSize="25dp"
+                <TextView  android:id="@+id/bestTime"
+                    android:text="0"
+                    android:textSize="25sp"
                     android:layout_gravity="center"
                     android:textStyle="bold" />
             </TableRow>
             <TableRow>
-                <TextView android:text="0"
-                    android:id="@+id/currentMoves"
-                    android:paddingLeft="10dp"
-                    android:textSize="25dp"
+                <TextView  android:id="@+id/currentMoves"
+                    android:text="0"
+                    android:textSize="25sp"
                     android:layout_gravity="center"
                     android:textStyle="bold" />
-                <TextView android:text="0"
-                    android:id="@+id/rankMoves"
-                    android:paddingLeft="10dp"
-                    android:textSize="25dp"
+                <TextView  android:id="@+id/rankMoves"
+                    android:text="0"
+                    android:textSize="25sp"
                     android:layout_gravity="center"
                     android:textStyle="bold" />
-                <TextView android:text="0"
-                    android:id="@+id/bestMoves"
-                    android:paddingLeft="10dp"
-                    android:textSize="25dp"
+                <TextView  android:id="@+id/bestMoves"
+                    android:text="0"
+                    android:textSize="25sp"
                     android:layout_gravity="center"
                     android:textStyle="bold" />
             </TableRow>
         </TableLayout>
-        <Button android:id="@+id/menu"
+
+        <Button  android:id="@+id/menu"
+            android:text="Return to Menu"
+            android:textSize="25sp"
+            android:layout_marginTop="30dp"
+            android:paddingTop="5dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="30dp"
-            android:text="Return to Menu"/>
-    </LinearLayout>
-</RelativeLayout>
+            app:layout_constraintTop_toBottomOf="@+id/stats_table"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent" />
+
+    </android.support.constraint.ConstraintLayout>
+</FrameLayout>
