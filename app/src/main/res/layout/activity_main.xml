@@ -27,11 +27,15 @@
                     android:textStyle="bold" />
             </TableRow>
         </TableLayout>
-        <TextView android:text="Select difficulty:"
-            android:paddingTop="15dp"
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="30dp"/>
+            android:layout_marginTop="50dp"
+            android:gravity="center"
+            android:paddingTop="15dp"
+            android:text="Select Difficulty"
+            android:textSize="30dp" />
 
         <android.support.constraint.Guideline
             android:id="@+id/guideline"
@@ -43,7 +47,12 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_margin="50dp"
+            android:layout_marginStart="50dp"
+            android:layout_marginLeft="50dp"
+            android:layout_marginTop="25dp"
+            android:layout_marginEnd="50dp"
+            android:layout_marginRight="50dp"
+            android:layout_marginBottom="50dp"
             android:orientation="vertical">
 
             <Button
