@@ -32,30 +32,55 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="30dp"/>
-        <Button android:id="@+id/easy"
-            android:layout_width="wrap_content"
+
+        <android.support.constraint.Guideline
+            android:id="@+id/guideline"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="30dp"
-            android:text="Easy"/>
-        <Button android:id="@+id/medium"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="30dp"
-            android:text="Medium"/>
-        <Button android:id="@+id/hard"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="30dp"
-            android:text="Hard"/>
-        <Button android:id="@+id/expert"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="30dp"
-            android:text="Expert"/>
-        <Button android:id="@+id/resume"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="30dp"
-            android:text="Resume"/>
+            android:orientation="horizontal"
+            android:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="50dp"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/easy"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Easy"
+                android:textSize="30dp" />
+
+            <Button
+                android:id="@+id/medium"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Medium"
+                android:textSize="30dp" />
+
+            <Button
+                android:id="@+id/hard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Hard"
+                android:textSize="30dp" />
+
+            <Button
+                android:id="@+id/expert"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Expert"
+                android:textSize="30dp" />
+
+            <Button
+                android:id="@+id/resume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Resume"
+                android:textSize="30dp" />
+        </LinearLayout>
+
     </LinearLayout>
 </RelativeLayout>
