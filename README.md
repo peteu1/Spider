@@ -20,6 +20,9 @@ New features needed:
 	- show hints
 - Visual response to illegal single tap (cards in stack spin if tapped but can't go anywhere)
 - Generate seed and shuffle deck according to random seed
+- Loading/Splash screen
+- Cache images instead of re-creating each time
+- AppIntro to give breif overview of the app
 
 
 -- Rules --
