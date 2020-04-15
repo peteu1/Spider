@@ -1,12 +1,9 @@
 package com.example.peter.spider.Game.CardDeck;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
-
-import java.util.HashMap;
 
 public class Stack {
     /**
@@ -18,7 +15,7 @@ public class Stack {
      */
     // Constants
     private static final String TAG = "Stack";
-    private static final int VERTICAL_CARD_SPACING = 40;
+    public static final int VERTICAL_CARD_SPACING = 40;
     // Stack properties
     public int stackId;
     Paint holderColor;
@@ -57,14 +54,14 @@ public class Stack {
             card = card.next;
         }
         this.computeHeight();
-        if (!moving) {
-            this.left = left;
-            this.top = top;
-        } else {
-            // Adjust display for moving stack
-            this.left = left - cardWidth;
-            this.top = top - stackHeight;
-        }
+        //if (!moving) {
+        this.left = left;
+        this.top = top;
+//        } else {
+//            // Adjust display for moving stack
+//            this.left = left - cardWidth;
+//            this.top = top - stackHeight;
+//        }
     }
 
     public void assignPosition(float x, float y) {
@@ -80,7 +77,6 @@ public class Stack {
 
     public int getNextCardY() {
         // When animating to this stack, get top of where next stack would go
-
         return top + stackHeight - cardHeight + VERTICAL_CARD_SPACING;
     }
 
@@ -143,8 +139,11 @@ public class Stack {
             int cardIdx = 0;
             Card card = head;
             while (card != null) {
-                int cardTop = top + cardIdx*VERTICAL_CARD_SPACING;
-                card.draw(canvas, left, cardTop);
+                // Don't draw cards being animated
+                if (card.arrived || this.moving) {
+                    int cardTop = top + cardIdx*VERTICAL_CARD_SPACING;
+                    card.draw(canvas, left, cardTop);
+                }
                 card = card.next;
                 cardIdx++;
             }
@@ -244,7 +243,7 @@ public class Stack {
         }
         if (x > realLeft && x < (left+cardWidth) && numCards > 0) {
             // X-coordinate of touch is within stack
-            Log.e("STACK", "y:" + y + ", top:" + top + ", stackHeight:" + stackHeight);
+
             if (y > top && y < (stackHeight+top)) {
                 // The stack was touched, collect stack of cards touched
                 if (stackId == 8) {
@@ -272,7 +271,6 @@ public class Stack {
                 // Normal playing stack touched, find which card was touched
                 // Get index of card touched
                 int topCardIdx =  (int) (((int)y-top) / VERTICAL_CARD_SPACING);
-                Log.e("STACK", "Top card:" + topCardIdx);
                 Card cardTouched;
                 boolean valid = true;  // valid until proven invalid
                 if (topCardIdx >= numCards) {
@@ -366,11 +364,19 @@ public class Stack {
      * Card adding/removing methods
      **************************************************/
 
-    public Stack getFullStack() {
+    public void notifyArrival() {
+        // Recursively tell each cards it has arrived
+        head.setArrived(true);
+    }
+
+    public Stack getFullStack(boolean notYet) {
         /**
          * Checks if a full stack exists in this stack
-         * @return the full stack if exists; otherwise null
+         * @return the full stack if exists; null otherwise
          */
+        if (stackId >= 8 || numCards < 13) {
+            return null;
+        }
         // Get the 13th card from bottom
         int cardIdx = 0;
         Card start = head;
@@ -392,18 +398,20 @@ public class Stack {
             if (stackCreated) {
                 // Get completed stack
                 Stack completedStack = new Stack(-2, start);
-                // Remove completed stack from this stack
-                if (numCards == 13) {
-                    head = null;
-                }
-                else {
-                    Card lastCard = head;
-                    for (int i=0; i < (numCards-14); ++i) {
-                        lastCard = lastCard.next;
+                if (!notYet) {
+                    // Remove completed stack from this stack
+                    if (numCards == 13) {
+                        head = null;
                     }
-                    lastCard.next = null;
+                    else {
+                        Card lastCard = head;
+                        for (int i=0; i < (numCards-14); ++i) {
+                            lastCard = lastCard.next;
+                        }
+                        lastCard.next = null;
+                    }
+                    this.computeHeight();
                 }
-                this.computeHeight();
                 return completedStack;
             }
         }
@@ -427,26 +435,26 @@ public class Stack {
         this.computeHeight();
     }
 
-    public Stack addStack(Stack s) {
+    public Stack addStack(Stack s, boolean notYet) {
         /**
          * Adds a stack (the moving stack) to the bottom of this stack
          * - NOTE: The add has already been deemed legal, so just add it
-         * @return completed stack if full stack made, otherwise null
+         * @param notYet: indicates animation starting; make cards invisible
          */
+        // Don't draw cards if notYet is true
+        s.head.setArrived(!notYet);
         // Add cards to end of this stack
         replaceStack(s);
-        // Check if a full stack was created
-        if (stackId < 8 && numCards >= 13) {
-            return getFullStack();
-        }
-        return null;
+        return getFullStack(notYet);
     }
 
     public Stack addCard(Card card) {
         // Adds a single card (when new cards are drawn) to end of stack
         card.unhide();
+        // TODO: To animate distribute new cards, need more logic in master
+        //card.setArrived(false);
         Stack newStack = new Stack(-3, card);
-        return this.addStack(newStack);
+        return this.addStack(newStack, false);
     }
 
     public Stack removeStack(int lenStack) {

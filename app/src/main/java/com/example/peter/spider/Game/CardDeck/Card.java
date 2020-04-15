@@ -18,6 +18,7 @@ public class Card {
     private int width;
     private int height;
     public boolean hidden;
+    public boolean arrived;  // To check if animation is occurring
     public int cardSuit, cardValue;
     public String value;
     public Card next;  // reference to card below this card
@@ -31,6 +32,7 @@ public class Card {
         this.suitImage = suitImage;
         value = displayValue();
         hidden = true;
+        arrived = true;
         next = null;
 
         // TODO: Make front of cards look nicer
@@ -73,6 +75,13 @@ public class Card {
         }
         hidden = false;
         return true;
+    }
+
+    void setArrived(boolean hasArrived) {
+        this.arrived = hasArrived;
+        if (next != null) {
+            next.setArrived(hasArrived);
+        }
     }
 
     public boolean canPlace(int otherVal) {

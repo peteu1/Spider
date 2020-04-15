@@ -107,17 +107,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         textPaint.setTextSize(30);
     }
 
-
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         Log.e(TAG, "surfaceCreated()");
         cardsInMotion = false;
         if (thread == null) {
-            Log.e(TAG, "Re-creating thread");
             getHolder().addCallback(this);
             thread = new MainThread(getHolder(), this);
-        } else {
-            Log.e(TAG, "Thread already exists!!");
         }
         if (!thread.getRunning()) {
             thread.setRunning(true);
@@ -168,16 +164,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         // Can't do anything while card stack is being animated
-        if (master.locked) {
+        if (master.isLocked()) {
+            Log.e(TAG, "Fail! Master is locked");
             return true;
         }
         final float x = event.getX();
         final float y = event.getY();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                // Initial touch of screen
-                Log.e("action", "Initial Touch");
-                // Check if a legal touch was initiated
+                // Initial touch of screen, check if legal touch initiated
                 cardsInMotion = master.legalTouch(x, y);
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -189,7 +184,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 break;
             case MotionEvent.ACTION_UP:
                 // touch was released
-                Log.e("action", "Touch released, x:" + String.valueOf(x) + ", y:" + String.valueOf(y));
                 if (cardsInMotion) {
                     // Lock into place if legal move, else go back to initial location
                     boolean gameOver = master.endStackMotion(x, y);
@@ -246,7 +240,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private void gameWon() {
         // Called when the game is won
-        Log.e(TAG, "You win!");
         Toast.makeText(context, "You Win!", Toast.LENGTH_SHORT).show();
         // Delete saved data in GAME_STATE_FILE_NAME
         File filePath = context.getExternalFilesDir(null);
