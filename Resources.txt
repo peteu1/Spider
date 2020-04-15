@@ -4,3 +4,6 @@ Spades: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-spade-suit
 Hearts: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-heart-suit-card.png
 Diamonds: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-diamond-suit-card.png
 Clubs: https://www.adda52.com/blog/wp-content/uploads/2013/10/adda52-club-suit-card-game.png
+
+Location of internal file storage [from Device File Explorer]:
+	sdcard/Android/data/com.example.peter.spider/files/

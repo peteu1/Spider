@@ -26,6 +26,7 @@ public class StatsActivity extends Activity implements View.OnClickListener {
     private final String TAG = "StatsActivity";
     // NOTE: Actual files will be prepended with difficulty integer
     public static final String STATS_HISTORY_FILE_NAME = "_stats_history.txt";
+    public static final String GAME_STATE_FILE_NAME = "game_state.txt";
     private String statsFileName;
     private File statsFile;
     private Button menu;
@@ -88,6 +89,16 @@ public class StatsActivity extends Activity implements View.OnClickListener {
         currentMovesText.setText(String.valueOf(currentMoves));
         bestMovesText.setText(String.valueOf(bestMoves));
         rankMovesText.setText(String.valueOf(rankMoves));
+
+        // Ensure game state file was deleted
+        // TODO: Better way to do this? File is re-created when mainActivity gets paused
+        try {
+            File file = new File(filePath, GAME_STATE_FILE_NAME);
+            boolean deleted = file.delete();
+            Log.e(TAG, "Game state file deleted:" + deleted);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private String getDifficultyText(int difficulty) {
@@ -129,17 +140,14 @@ public class StatsActivity extends Activity implements View.OnClickListener {
             FileWriter writer = new FileWriter(statsFile);
             // Loop through lines of previous data
             for (String row : data) {
-                Log.e(TAG, "row:" + row);
                 String[] items = row.split(",");
                 try {
                     int thisSeconds = Integer.parseInt(items[0]);
-                    Log.e(TAG, "thisSeconds:" + String.valueOf(thisSeconds));
                     if (thisSeconds < currentSeconds) {
                         rankTime++;  // Increment rank
                         bestSeconds = Math.min(thisSeconds, bestSeconds);  // Update high score
                     }
                     int thisMoves = Integer.parseInt(items[1]);
-                    Log.e(TAG, "thisMoves:" + String.valueOf(thisMoves));
                     if (thisMoves < currentMoves) {
                         rankMoves++;  // Increment rank
                         bestMoves = Math.min(thisMoves, bestMoves);  // Update high score
@@ -179,7 +187,6 @@ public class StatsActivity extends Activity implements View.OnClickListener {
             Log.e("login activity", "Can not read file: " + e.toString());
         }
         String rawData = new String(bytes);
-        Log.e(TAG, "rawData: " + rawData);
         if (rawData.length() > 1) {
             String[] rows = rawData.split("\n");
             return new ArrayList<String>(Arrays.asList(rows));

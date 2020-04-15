@@ -43,7 +43,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // Constructor for new game
         super(context);
         Log.e(TAG, "New constructor called.");
-        HashMap<Integer, Drawable> mStore = initialize(context, difficulty);
+        this.context = context;
+        HashMap<Integer, Drawable> mStore = initialize(difficulty);
         // Initialize Master
         master = new Master(screenWidth, screenHeight, difficulty, mStore);
     }
@@ -52,12 +53,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // Constructor to restore game where it left off.
         super(context);
         Log.e(TAG, "Restore constructor called.");
+        this.context = context;
         // Get saved data from file
         ArrayList<String> savedData = readSavedData();
         String line = savedData.get(0);
         String[] data = line.split(",");
         int difficulty = Integer.parseInt(data[1]);
-        HashMap<Integer, Drawable> mStore = initialize(context, difficulty);
+        HashMap<Integer, Drawable> mStore = initialize(difficulty);
         // Re-create master
         master = new Master(screenWidth, screenHeight, mStore, savedData);
     }
@@ -69,10 +71,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         screenHeight = displayMetrics.heightPixels;
     }
 
-    private HashMap<Integer, Drawable> initialize(Context context,
-                                                  int difficulty) {
+    private HashMap<Integer, Drawable> initialize(int difficulty) {
         // Helper method used by both constructors
-        this.context = context;
         getHolder().addCallback(this);
         thread = new MainThread(getHolder(), this);
         setFocusable(true);
@@ -110,14 +110,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.e(TAG, "surfaceCreated()");
         cardsInMotion = false;
         if (thread == null) {
-            Log.e(TAG, "Re-creating thread");
             getHolder().addCallback(this);
             thread = new MainThread(getHolder(), this);
-        } else {
-            Log.e(TAG, "Thread already exists!!");
         }
         if (!thread.getRunning()) {
             thread.setRunning(true);
@@ -167,17 +163,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        // Can't do anything while card stack is being animated
-        if (master.locked) {
-            return true;
-        }
         final float x = event.getX();
         final float y = event.getY();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                // Initial touch of screen
-                Log.e("action", "Initial Touch");
-                // Check if a legal touch was initiated
+                // Initial touch of screen, check legality
                 cardsInMotion = master.legalTouch(x, y);
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -189,7 +179,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 break;
             case MotionEvent.ACTION_UP:
                 // touch was released
-                Log.e("action", "Touch released, x:" + String.valueOf(x) + ", y:" + String.valueOf(y));
                 if (cardsInMotion) {
                     // Lock into place if legal move, else go back to initial location
                     boolean gameOver = master.endStackMotion(x, y);
@@ -252,7 +241,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         File filePath = context.getExternalFilesDir(null);
         try {
             File file = new File(filePath, GAME_STATE_FILE_NAME);
-            file.delete();
+            boolean deleted = file.delete();
+            Log.e(TAG, "Game state file deleted:" + deleted);
+            // TODO: NOTE: file being recreated when MainActivty gets paused
         } catch (Exception e) {
             e.printStackTrace();
         }
