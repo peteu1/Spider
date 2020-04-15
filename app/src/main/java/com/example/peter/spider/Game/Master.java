@@ -40,14 +40,10 @@ public class Master {
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
     // Can't do anything while card stack is being animated
-    boolean locked = false;
-    int animationDestination = -1;
 
     Master(int screenWidth, int screenHeight, int difficulty,
            HashMap<Integer, Drawable> mStore) {
-        /**
-         * Constructor for starting a new game.
-         */
+        // Constructor for starting a new game
         this.difficulty = difficulty;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
@@ -57,9 +53,7 @@ public class Master {
 
     Master(int screenWidth, int screenHeight, HashMap<Integer, Drawable> mStore,
            ArrayList<String> savedData) {
-        /**
-         * Constructor for resuming a saved game.
-         */
+        // Constructor for resuming a saved game
         long timeElapsed = 0;
         int numMoves = 0;
         boolean lastActionRemove = false;
@@ -81,7 +75,7 @@ public class Master {
             } else if (data[0].equals("lastActionRemove")) {
                 lastActionRemove = Boolean.parseBoolean(data[1]);
             } else {
-                // history object
+                // Get history object
                 HistoryObject ho = new HistoryObject();
                 int numCards = Integer.parseInt(data[2]);
                 int from = Integer.parseInt(data[0]);
@@ -104,9 +98,7 @@ public class Master {
     }
 
     private void initialize(HashMap<Integer, Drawable> mStore) {
-        /**
-         * Constuctor helper for both new master and restore master constructors
-         */
+        // Helper for new -- and restored -- master constructors
         Deck deck = new Deck(difficulty, seed, mStore);
         stacks = deck.dealStacks();
         historyTracker = new HistoryTracker();
@@ -116,9 +108,7 @@ public class Master {
     }
 
     private void arrangeStacks() {
-        /**
-         * Sets the screen location for all the stacks based on screen size.
-         */
+        // Sets the screen location for all the stacks based on screen size
         int cardHeight = (int) (cardWidth * 1.5);
         // Playing stacks start 30 pixels below non-playing stacks
         int stackTop = NON_PLAYING_STACK_Y + cardHeight + 30;
@@ -135,9 +125,7 @@ public class Master {
     }
 
     void updateOrientation(int screenWidth, int screenHeight) {
-        /**
-         * This is called when the screen is rotated, re-arrange stack spacing
-         */
+        // Called when the screen is rotated, re-arrange stack spacing
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
@@ -155,20 +143,8 @@ public class Master {
             stack.drawStack(canvas);
         }
         if (movingStack != null) {
-            if (!locked) {
-                // Draw moving stack as finger drags
-                movingStack.drawStack(canvas);
-            } else {
-                // Update animation/position of moving stack
-                boolean arrived = movingStack.incrementAnimation();
-                if (arrived) {
-                    updateStacks(animationDestination, false);
-                    locked = false;
-                    animationDestination = -1;
-                } else {
-                    movingStack.drawStack(canvas);
-                }
-            }
+            // Draw moving stack as finger drags
+            movingStack.drawStack(canvas);
         }
     }
 
@@ -287,44 +263,29 @@ public class Master {
          * @param showAnimation (boolean): when stack is tapped, animate stack motion
          * @return true if game is over; false otherwise.
          */
-        // TODO: Show animation if illegal drop (back to original stack)
-        // TODO: Show animation for distribute cards
-        // TODO: Show animation for undo move
-        if (showAnimation) {
-            // Get coordinates of stack destination
-            int left = stacks[newStackIdx].left;
-            int top = stacks[newStackIdx].getNextCardY();
-            movingStack.beginAnimation(left, top);
-            locked = true;
-            animationDestination = newStackIdx;
-            return false;
-        } else {
-            Stack completedStack = stacks[newStackIdx].addStack(movingStack);
-            // Move completed stack to stacks[9] if full stack was made
-            if (completedStack != null) {
-                stacks[9].addStack(completedStack);
-                if (stacks[9].getNumCards() == 52) {
-                    movingStack = null;
-                    return true;
-                }
+        Stack completedStack = stacks[newStackIdx].addStack(movingStack);
+        // Move completed stack to stacks[9] if full stack was made
+        if (completedStack != null) {
+            stacks[9].addStack(completedStack);
+            if (stacks[9].getNumCards() == 52) {
+                movingStack = null;
+                return true;
             }
-            // Check if a legal move occurred
-            if (newStackIdx != originalStack) {
-                // Record the move
-                HistoryObject move = new HistoryObject();
-                move.recordMove(movingStack.head.cardsBelow(), originalStack, newStackIdx);
-                if (completedStack != null) {
-                    move.completedStackIds.add(newStackIdx);
-                }
-                // Flip over newly revealed card
-                boolean cardFlipped = stacks[originalStack].flipBottomCard();
-                move.cardRevealed = cardFlipped;
-                historyTracker.record(move);
-                Log.e(TAG, "Adding to history:" + move.originalStack + " > " + move.newStack + ",cards:" + move.numCards);
-            }
-            movingStack = null;
-            return false;
         }
+        if (newStackIdx != originalStack) {
+            // Add move to history if legal
+            HistoryObject move = new HistoryObject();
+            move.recordMove(movingStack.head.cardsBelow(), originalStack, newStackIdx);
+            if (completedStack != null) {
+                move.completedStackIds.add(newStackIdx);
+            }
+            // Flip over newly revealed card
+            boolean cardFlipped = stacks[originalStack].flipBottomCard();
+            move.cardRevealed = cardFlipped;
+            historyTracker.record(move);
+        }
+        movingStack = null;
+        return false;
     }
 
     private boolean distributeNewCards() {
@@ -340,7 +301,6 @@ public class Master {
         for (int i=0; i<8; ++i) {
             nextCard = currentCard.next;  // Save next card
             currentCard.next = null;
-            // TODO: Animation
             Stack completedStack = stacks[i].addCard(currentCard);
             if (completedStack != null) {
                 // Completed stack was created
@@ -353,14 +313,11 @@ public class Master {
         move.recordMove(8, 8, -3);
         historyTracker.record(move);
         movingStack = null;
-        // NOTE: return false because cards are not in motion
-        return false;
+        return false;  // NOTE: return false because cards aren't in motion
     }
 
     boolean undo() {
-        /**
-         * Un-does a move when undo is clicked
-         */
+        // Un-does a move when undo is clicked
         if (historyTracker.isEmpty()) {
             return false;
         }

@@ -1,12 +1,9 @@
 package com.example.peter.spider.Game.CardDeck;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
-
-import java.util.HashMap;
 
 public class Stack {
     /**
@@ -27,9 +24,6 @@ public class Stack {
     private int cardWidth, cardHeight, stackHeight, numCards;
     // Game properties
     public Card head; // This will be the first node in the stack, w/ pointer to next
-    boolean moving;  // true if the stack is currently being moved
-    int destX, destY;  // For animated moving stack, this is where it's heading
-    final int FRAME_RATE = 20;
 
     public Stack(int stackId, Card head) {
         this.stackId = stackId;
@@ -57,14 +51,8 @@ public class Stack {
             card = card.next;
         }
         this.computeHeight();
-        if (!moving) {
-            this.left = left;
-            this.top = top;
-        } else {
-            // Adjust display for moving stack
-            this.left = left - cardWidth;
-            this.top = top - stackHeight;
-        }
+        this.left = left;
+        this.top = top;
     }
 
     public void assignPosition(float x, float y) {
@@ -78,62 +66,8 @@ public class Stack {
         // NOTE: -10 to get a little buffer above the fatness of your finger
     }
 
-    public int getNextCardY() {
-        // When animating to this stack, get top of where next stack would go
-
-        return top + stackHeight - cardHeight + VERTICAL_CARD_SPACING;
-    }
-
-    public void beginAnimation(int X, int Y) {
-        // When a moving stack is set in motion for animation, record destination
-        destX = X;
-        destY = Y;
-    }
-
-    public boolean incrementAnimation() {
-        /**
-         * (For MOVING STACK only)  Update the position of stack based
-         *  on angle to destination to show animation.
-         * @return true when the animation is finished/arrived at
-         *      destination; false otherwise
-         */
-        double animationAngle = Math.atan2((top-destY), (left-destX));
-        System.out.println("Angle: " + animationAngle);
-        if (animationAngle > 0) {
-            // moving upwards (or straight right)
-            if (animationAngle > (Math.PI / 2)) {
-                // moving up/right (or straight right)
-                // NOTE: Add because (angle - PI) will be negative
-                top += (animationAngle - Math.PI) * FRAME_RATE;
-                left += (animationAngle - (Math.PI/2)) * FRAME_RATE;
-            } else {
-                // moving up/left (or straight up)
-                top -= (animationAngle * FRAME_RATE);
-                // NOTE: Add because (angle - PI/2) will be negative
-                left += (animationAngle - (Math.PI/2)) * FRAME_RATE;
-            }
-        } else { // if (animationAngle < 0)
-            // moving downwards (or straight left)
-            if (animationAngle > (-Math.PI / 2)) {
-                // moving down/left (or straight left)
-                // NOTE: Subtract because angle is negative
-                top -= (animationAngle * FRAME_RATE);
-                left -= (animationAngle + (Math.PI/2)) * FRAME_RATE;
-            } else {
-                // moving down/right (or straight down)
-                top += (animationAngle + Math.PI) * FRAME_RATE;
-                // NOTE: Subtract because (angle - PI/2) will be negative
-                left -= (animationAngle + (Math.PI/2)) * FRAME_RATE;
-            }
-        }
-        return (left >= (destX-FRAME_RATE) && left <= (destX+FRAME_RATE)) &&
-                (top >= (destY-FRAME_RATE) && top <= (destY+FRAME_RATE));
-    }
-
     public void drawStack(Canvas canvas) {
-        /**
-         * Tells each card where to draw itself
-         */
+        // Tells each card where to draw itself.
         // Draw stack holder
         if (stackId >= 0) {
             canvas.drawRect(left, top, left+cardWidth, top+cardHeight, holderColor);
@@ -208,10 +142,11 @@ public class Stack {
 
     public boolean flipBottomCard() {
         /**
-         * Turns over (un-hides) the bottom card in the stack
+         * Turns over (un-hides) the bottom card in the stack.
+         * @return true if card was flipped; false otherwise (already un-hidden)
          */
         if (head != null) {
-            return head.bottomCard().unhide();
+            return head.bottomCard().unHide();
         }
         return false;
     }
@@ -244,7 +179,6 @@ public class Stack {
         }
         if (x > realLeft && x < (left+cardWidth) && numCards > 0) {
             // X-coordinate of touch is within stack
-            Log.e("STACK", "y:" + y + ", top:" + top + ", stackHeight:" + stackHeight);
             if (y > top && y < (stackHeight+top)) {
                 // The stack was touched, collect stack of cards touched
                 if (stackId == 8) {
@@ -272,7 +206,6 @@ public class Stack {
                 // Normal playing stack touched, find which card was touched
                 // Get index of card touched
                 int topCardIdx =  (int) (((int)y-top) / VERTICAL_CARD_SPACING);
-                Log.e("STACK", "Top card:" + topCardIdx);
                 Card cardTouched;
                 boolean valid = true;  // valid until proven invalid
                 if (topCardIdx >= numCards) {
@@ -298,7 +231,6 @@ public class Stack {
                 if (valid) {
                     // Get stack to return
                     Stack stackTouched = new Stack(-1, cardTouched);
-                    stackTouched.moving = true;
                     // Remove cards from this stack
                     if (topCardIdx == 0) {
                         head = null;
@@ -444,7 +376,7 @@ public class Stack {
 
     public Stack addCard(Card card) {
         // Adds a single card (when new cards are drawn) to end of stack
-        card.unhide();
+        card.unHide();
         Stack newStack = new Stack(-3, card);
         return this.addStack(newStack);
     }
