@@ -1,9 +1,7 @@
 # Spider
 Android app: Spider Solitaire using a single card deck
 
-Set-up:
-- From AndroidStudio, open the outer-most directory (Spider) as the project.
-- Allow AndroidStudio to configure all the gradle stuff, then restart the program.
+NOTE: As of 4/15/20, stopping dev directly on master branch. Always keep master branch functioning, and develop new features on a separate branch which can be merged in after passing tests.
 
 New features needed:
 - Make layous look nicer
