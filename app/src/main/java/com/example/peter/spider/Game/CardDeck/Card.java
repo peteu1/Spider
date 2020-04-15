@@ -12,17 +12,20 @@ import java.util.HashMap;
 
 public class Card {
     /**
-     * Cards just hold their value and suit
-     * The stack tells it where to draw itself
+     * Cards hold all the info needed to draw itself. The stack object
+     *  tells it where to draw itself.
+     * The card also points to the card below it so that the stack only needs
+     *  to keep track of the head (top) card.
      */
-    private int width;
-    private int height;
-    public boolean hidden;
+
+    public Card next = null;  // reference to card below this card
+    private int width, height;
     public int cardSuit, cardValue;
-    public String value;
-    public Card next;  // reference to card below this card
-    private Paint blockColor, hiddenColor, textPaint;
-    Drawable cardBack, suitImage;
+    private String value;
+    public boolean hidden = true;
+    private Drawable cardBack, suitImage;
+    private Paint blockColor, textPaint;
+
 
     public Card(int cardSuit, int cardValue, Drawable cardBack, Drawable suitImage) {
         this.cardSuit = cardSuit;
@@ -30,14 +33,10 @@ public class Card {
         this.cardBack = cardBack;
         this.suitImage = suitImage;
         value = displayValue();
-        hidden = true;
-        next = null;
 
         // TODO: Make front of cards look nicer
         blockColor = new Paint();
         blockColor.setColor(Color.rgb(70,70,70));
-        hiddenColor = new Paint();
-        hiddenColor.setColor(Color.rgb(110,110,110));
         textPaint = new Paint();
         textPaint.setColor(Color.WHITE);
         textPaint.setTextSize(12);
@@ -63,7 +62,7 @@ public class Card {
         height = h;
     }
 
-    public boolean unhide() {
+    public boolean unHide() {
         /**
          * Makes cards value and suit visible
          * @return true if card had been hidden; false if already visible
@@ -117,9 +116,7 @@ public class Card {
     }
 
     public Card bottomCard() {
-        /**
-         * Iterates the cards below and returns the last (bottom) card.
-         */
+        // Gets the last/bottom card that this card is connected to
         if (next == null) {
             return this;
         }
@@ -131,10 +128,7 @@ public class Card {
     }
 
     public int cardsBelow() {
-        /**
-         * Returns the number of cards attached to this
-         *  card (including this one)
-         */
+        // Gets the number of attached cards (including this one)
         int numCards = 1;
         Card next = this.next;
         while (next != null) {

@@ -79,7 +79,7 @@ public class Deck {
                 cardNum++;
             }
             // Unhide top card
-            deck[cardNum-1].unhide();
+            deck[cardNum-1].unHide();
             stacks[j] = new Stack(j, head);
         }
         // Add remaining cards to unplayed stack

@@ -67,6 +67,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         // Check if there is saved game data
         boolean activeGame = checkForActiveGame();
+        Log.e(TAG, "Active game:" + activeGame);
         resume.setVisibility(activeGame ? View.VISIBLE : View.GONE);
     }
 
@@ -84,6 +85,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             FileInputStream in = new FileInputStream(file);
             try {
                 in.read(bytes);
+            } catch (Exception e1) {
+                return false;
             } finally {
                 in.close();
             }
@@ -95,7 +98,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             return false;
         }
         Log.e(TAG, "Length saved data:" + bytes.length);
-        return bytes.length > 0;
+        //return bytes.length > 0;
+        return true;
     }
 
     @Override
