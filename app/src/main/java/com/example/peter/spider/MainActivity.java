@@ -3,7 +3,6 @@ package com.example.peter.spider;
 import android.app.Activity;
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -18,7 +17,7 @@ import java.io.IOException;
 
 public class MainActivity extends Activity implements View.OnClickListener {
 
-    private final String TAG = "MainActivity";
+    //private final String TAG = "MainActivity";
     private Button easy, medium, hard, expert, resume;
     private GameView gameView = null;
 
@@ -47,7 +46,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.e(TAG, "onCreate()");
+        //Log.e(TAG, "onCreate()");
         // Launches the Menu screen
         super.onCreate(savedInstanceState);
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -67,7 +66,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         // Check if there is saved game data
         boolean activeGame = checkForActiveGame();
-        Log.e(TAG, "Active game:" + activeGame);
+        //Log.e(TAG, "Active game:" + activeGame);
         resume.setVisibility(activeGame ? View.VISIBLE : View.GONE);
     }
 
@@ -76,7 +75,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
          * Looks at the saved game to see if there is an incomplete
          * game that can be resumed.
          */
-        Log.e(TAG, "checkForActiveGame()");
+        //Log.e(TAG, "checkForActiveGame()");
         File filePath = getExternalFilesDir(null);
         File file = new File(filePath, GameView.GAME_STATE_FILE_NAME);
         int length = (int) file.length();
@@ -91,13 +90,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 in.close();
             }
         } catch (FileNotFoundException e) {
-            Log.e("login activity", "File not found: " + e.toString());
             return false;
         } catch (IOException e) {
-            Log.e("login activity", "Can not read file: " + e.toString());
             return false;
         }
-        Log.e(TAG, "Length saved data:" + bytes.length);
+        //Log.e(TAG, "Length saved data:" + bytes.length);
         //return bytes.length > 0;
         return true;
     }
@@ -130,26 +127,24 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         // Avoid onCreate() call when screen is rotated
-        Log.e(TAG, "onConfigurationChanged()");
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            Log.e(TAG,"LANDSCAPE");
-        } else {
-            Log.e(TAG,"PORTRAIT");
-        }
+        //Log.e(TAG, "onConfigurationChanged()");
+//        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+//            Log.e(TAG,"LANDSCAPE");
+//        } else {
+//            Log.e(TAG,"PORTRAIT");
+//        }
         super.onConfigurationChanged(newConfig);
         if (gameView != null) {
-            Log.e(TAG, "gameView exists!");
+//            Log.e(TAG, "gameView exists!");
             gameView.updateOrientation(this);
             setContentView(gameView);
-        } else {
-            Log.e(TAG, "gameView DNE");
         }
     }
 
     @Override
     protected void onPause() {
         // Called when app is left. Save the state of the game.
-        Log.e(TAG, "onPause()");
+        //Log.e(TAG, "onPause()");
         if (gameView != null) {
             gameView.killThread();
             gameView.storeGameState();
@@ -160,14 +155,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         // NOTE: Not used, game is saved to file from onPause().
-        Log.e(TAG, "onSaveInstanceState()");
+        //Log.e(TAG, "onSaveInstanceState()");
         super.onSaveInstanceState(savedInstanceState);
     }
 
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         // NOTE: Not used, saved game is retrieved when "Resume" is clicked.
-        Log.e(TAG, "onRestoreInstanceState()");
+        //Log.e(TAG, "onRestoreInstanceState()");
         super.onRestoreInstanceState(savedInstanceState);
     }
 }

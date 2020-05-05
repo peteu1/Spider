@@ -2,10 +2,7 @@ package com.example.peter.spider.Game;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.support.constraint.ConstraintLayout;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -23,7 +20,7 @@ import java.util.Arrays;
 
 public class StatsActivity extends Activity implements View.OnClickListener {
 
-    private final String TAG = "StatsActivity";
+    //private final String TAG = "StatsActivity";
     // NOTE: Actual files will be prepended with difficulty integer
     public static final String STATS_HISTORY_FILE_NAME = "_stats_history.txt";
     public static final String GAME_STATE_FILE_NAME = "game_state.txt";
@@ -95,7 +92,7 @@ public class StatsActivity extends Activity implements View.OnClickListener {
         try {
             File file = new File(filePath, GAME_STATE_FILE_NAME);
             boolean deleted = file.delete();
-            Log.e(TAG, "Game state file deleted:" + deleted);
+            //Log.e(TAG, "Game state file deleted:" + deleted);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -166,7 +163,7 @@ public class StatsActivity extends Activity implements View.OnClickListener {
             e.printStackTrace();
         }
         bestTime = convertTime(bestSeconds);
-        Log.e(TAG, "data size:" + data.size());
+        //Log.e(TAG, "data size:" + data.size());
         return data.size() + 1;
     }
 
@@ -182,9 +179,9 @@ public class StatsActivity extends Activity implements View.OnClickListener {
                 in.close();
             }
         } catch (FileNotFoundException e) {
-            Log.e("login activity", "File not found: " + e.toString());
+            //Log.e("login activity", "File not found: " + e.toString());
         } catch (IOException e) {
-            Log.e("login activity", "Can not read file: " + e.toString());
+            //Log.e("login activity", "Can not read file: " + e.toString());
         }
         String rawData = new String(bytes);
         if (rawData.length() > 1) {
