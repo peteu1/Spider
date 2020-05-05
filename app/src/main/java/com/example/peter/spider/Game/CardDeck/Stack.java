@@ -3,7 +3,6 @@ package com.example.peter.spider.Game.CardDeck;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.util.Log;
 
 public class Stack {
     /**
@@ -14,14 +13,16 @@ public class Stack {
      * Then another temporary instance used for moving cards
      */
     // Constants
-    private static final String TAG = "Stack";
-    private static final int VERTICAL_CARD_SPACING = 40;
+    //private static final String TAG = "Stack";
+
+
     // Stack properties
     public int stackId;
     Paint holderColor;
     // Size/location properties
     public int left, top;  // X/Y canvas coordinates
-    private int cardWidth, cardHeight, stackHeight, numCards;
+    private int stackHeight, maxHeight;
+    private int cardWidth, cardHeight, numCards, vertical_card_spacing;
     // Game properties
     public Card head; // This will be the first node in the stack, w/ pointer to next
 
@@ -44,10 +45,12 @@ public class Stack {
          *  constructor. Each card's width is set.
          */
         this.cardWidth = cardWidth;
-        cardHeight = (int) (cardWidth * 1.4);
+
+        cardHeight = (int) (cardWidth * Const.CARD_WH_RATIO);
+        vertical_card_spacing = (int) (cardHeight * Const.VERTICAL_CARD_SPACING_PCT);
         Card card = head;
         while (card != null) {
-            card.setSize(cardWidth, cardHeight);
+            card.setSize(cardWidth, cardHeight, vertical_card_spacing);
             card = card.next;
         }
         this.computeHeight();
@@ -61,9 +64,30 @@ public class Stack {
          * Update position as finger drags
          */
         // Adjust display location so that finger is in bottom right corner
+        // TODO: How to adjust for larger screens?
         left = (int) x - cardWidth - 10;
         top = (int) y - stackHeight - 10;
         // NOTE: -10 to get a little buffer above the fatness of your finger
+    }
+
+    public void setMaxHeight(int maxHeight) {
+        // This is the largest stacks can be before need to shrink
+        this.maxHeight = maxHeight;
+    }
+
+    public void drawPlayingStack(Canvas canvas, Card firstCard) {
+        // Helper function to draw a playing (static or moving) stack
+        int cardIdx = 0;
+        Card card = firstCard;
+//        if (card != head) {
+            // TODO: Add scrollable arrow
+//        }
+        while (card != null) {
+            int cardTop = top + cardIdx*vertical_card_spacing;
+            card.draw(canvas, left, cardTop);
+            card = card.next;
+            cardIdx++;
+        }
     }
 
     public void drawStack(Canvas canvas) {
@@ -71,17 +95,23 @@ public class Stack {
         // Draw stack holder
         if (stackId >= 0) {
             canvas.drawRect(left, top, left+cardWidth, top+cardHeight, holderColor);
+        } else {
+            // Draw stack if moving
+            drawPlayingStack(canvas, head);
         }
         if (stackId < 8) {
-            // Draw playing stacks (& moving stack if exists)
-            int cardIdx = 0;
-            Card card = head;
-            while (card != null) {
-                int cardTop = top + cardIdx*VERTICAL_CARD_SPACING;
-                card.draw(canvas, left, cardTop);
-                card = card.next;
-                cardIdx++;
+            // Draw static playing stacks
+            Card firstCard = head;
+            // Ensure cards are visible (not too tall)
+            if (stackHeight > maxHeight) {
+                // TODO: Make scrollable
+                int cardsToHide = ((stackHeight - maxHeight) / vertical_card_spacing) + 1;
+                // Skip cards until we can see bottom
+                for (int i=0; i<cardsToHide; ++i) {
+                    firstCard = firstCard.next;
+                }
             }
+            drawPlayingStack(canvas, firstCard);
         }
         else if (stackId == 8) {
             // Draw un-played cards (hidden) in sets of 8
@@ -90,7 +120,7 @@ public class Stack {
             // Draw sets of 8 side by side
             int numStacks = numCards / 8;
             for (int i=(numStacks-1); i>=0; --i) {
-                int stackLeft = left - (i * VERTICAL_CARD_SPACING);
+                int stackLeft = left - (i * vertical_card_spacing);
                 f.draw(canvas, stackLeft, top);
             }
         }
@@ -103,7 +133,7 @@ public class Stack {
                     c = c.next;
                 }
                 for (int i=0; i<numStacks; ++i) {
-                    int stackLeft = left + (i * VERTICAL_CARD_SPACING);
+                    int stackLeft = left + (i * vertical_card_spacing);
                     c.draw(canvas, stackLeft, top);
                     // Descend 13 cards for next card to draw
                     if (c.next != null) {
@@ -128,7 +158,7 @@ public class Stack {
         } else {
             this.numCards = head.cardsBelow();
             if (stackId < 8) {
-                stackHeight = ((this.numCards-1)*VERTICAL_CARD_SPACING)+cardHeight;
+                stackHeight = ((this.numCards-1)*vertical_card_spacing)+cardHeight;
             } else {
                 // Completed and un-played card stacks have cards on top of each other
                 stackHeight = cardHeight;
@@ -167,15 +197,16 @@ public class Stack {
 
     public Stack touchContained(float x, float y) {
         /**
-         * Check if the coordinates are in this stack
-         * If they are, return the sub-stack from the clicked position
-         *  to the end of this stack
-         * Otherwise, return null
+         * Called when the screen is first touched.
+         * 1. Check if the coordinates are in this stack
+         * 2a. If they are, return the sub-stack from the clicked position
+         *      to the end of this stack
+         * 2b. Otherwise, return null
          */
         // Get real left (different for stack #8)
         int realLeft = left;
         if (stackId == 8) {
-            realLeft = left - (((numCards/8) - 1) * VERTICAL_CARD_SPACING);
+            realLeft = left - (((numCards/8) - 1) * vertical_card_spacing);
         }
         if (x > realLeft && x < (left+cardWidth) && numCards > 0) {
             // X-coordinate of touch is within stack
@@ -205,7 +236,7 @@ public class Stack {
                 }
                 // Normal playing stack touched, find which card was touched
                 // Get index of card touched
-                int topCardIdx =  (int) (((int)y-top) / VERTICAL_CARD_SPACING);
+                int topCardIdx =  (int) (((int)y-top) / vertical_card_spacing);
                 Card cardTouched;
                 boolean valid = true;  // valid until proven invalid
                 if (topCardIdx >= numCards) {

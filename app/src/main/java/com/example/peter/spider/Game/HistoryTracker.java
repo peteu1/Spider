@@ -1,13 +1,11 @@
 package com.example.peter.spider.Game;
 
-import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 class HistoryTracker {
 
-    private final String TAG = "HISTORY_TRACKER";
+    //private final String TAG = "HISTORY_TRACKER";
     private ArrayList<HistoryObject> history;
     private int numMoves;
     private boolean lastActionRemove = false;
@@ -82,7 +80,6 @@ class HistoryTracker {
          * RULES: You can only reduce move count by 1, consecutive undo's
          *  in a row will not reduce move count.
          */
-        Log.e(TAG, "Len history:" + history.size());
         if (!lastActionRemove) {
             numMoves--;
         }

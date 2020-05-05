@@ -1,20 +1,17 @@
 package com.example.peter.spider.Game;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
-import android.util.DisplayMetrics;
 import android.util.Log;
 
 import com.example.peter.spider.Game.CardDeck.Card;
+import com.example.peter.spider.Game.CardDeck.Const;
 import com.example.peter.spider.Game.CardDeck.Deck;
 import com.example.peter.spider.Game.CardDeck.Stack;
-import com.example.peter.spider.R;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 public class Master {
     /**
@@ -24,16 +21,13 @@ public class Master {
      */
     private static final String TAG = "Master";
     public int difficulty;
-    private int seed;
+    private long seed;
     private Stack[] stacks;  // Holds 10 stacks: 8 in play, 1 unplayed, 1 complete
     HistoryTracker historyTracker;
+    public int textPaintSize;
 
-    // Top of completed and un-played stacks
-    private static final int NON_PLAYING_STACK_Y = 50;
-    private static final int STACK_SPACING = 5;  // spacing between stacks
-    // Left/right margins: 0.05 screen width
-    private static final double EDGE_MARGIN = 0.05;
-    int screenWidth, screenHeight, stackWidth, cardWidth;
+    int screenWidth, screenHeight, non_playing_stack_y, maxStackHeight;
+    private int stackWidth, cardWidth, cardHeight, stackSpacing, edgeMargin;
     private float tappedX, tappedY;  // Store initial touch coords to see if screen was tapped
 
     // The following are used to track a moving stack
@@ -60,14 +54,11 @@ public class Master {
         ArrayList<HistoryObject> history = new ArrayList<HistoryObject>();
         // Parse saved data
         for (String line : savedData) {
-            Log.e(TAG, "savedData:" + line);
             String[] data = line.split(",");
-            Log.e(TAG, "data[0]:" + data[0]);
             if (data[0].equals("difficulty")) {
                 this.difficulty = Integer.parseInt(data[1]);
-                Log.e(TAG, "Integer.parseInt(data[1]):" + Integer.parseInt(data[1]));
             } else if (data[0].equals("seed")) {
-                seed = Integer.parseInt(data[1]);
+                this.seed = Long.parseLong(data[1]);
             } else if (data[0].equals("timeElapsed")) {
                 timeElapsed = Long.parseLong(data[1]);
             } else if (data[0].equals("numMoves")) {
@@ -93,45 +84,66 @@ public class Master {
     }
 
     private void generateSeed() {
-        // TODO: Randomly generate number
-        this.seed = 1;
+        // Generate random seed so exact shuffle can be restored
+        Random rand = new Random();
+        this.seed = rand.nextLong();
     }
 
     private void initialize(HashMap<Integer, Drawable> mStore) {
         // Helper for new -- and restored -- master constructors
+        edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT);
+        stackWidth = (int) ((screenWidth - edgeMargin*2) / 8);
+        stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT);
+        cardWidth = stackWidth - stackSpacing;
+        cardHeight = (int) (cardWidth * Const.CARD_WH_RATIO);
+        non_playing_stack_y = (int) (Const.NON_PLAYING_STACK_Y_PCT * screenHeight);
         Deck deck = new Deck(difficulty, seed, mStore);
         stacks = deck.dealStacks();
         historyTracker = new HistoryTracker();
-        stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
-        cardWidth = stackWidth - STACK_SPACING;
         arrangeStacks();
+        textPaintSize = (int) (non_playing_stack_y * Const.MENU_PAINT_PCT);
+    }
+
+    public int updateOrientation(int screenWidth, int screenHeight) {
+        // Called when the screen is rotated, re-arrange stack spacing
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
+        edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT);
+        stackWidth = (int) ((screenWidth - edgeMargin*2) / 8);
+        stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT);
+        cardWidth = stackWidth - stackSpacing;
+        cardHeight = (int) (cardWidth * Const.CARD_WH_RATIO);
+        non_playing_stack_y = (int) (Const.NON_PLAYING_STACK_Y_PCT * screenHeight);
+
+        // Re-arrange stacks with new dimensions
+        arrangeStacks();
+        textPaintSize = (int) (non_playing_stack_y * Const.MENU_PAINT_PCT);
+        return textPaintSize;
     }
 
     private void arrangeStacks() {
         // Sets the screen location for all the stacks based on screen size
-        int cardHeight = (int) (cardWidth * 1.5);
-        // Playing stacks start 30 pixels below non-playing stacks
-        int stackTop = NON_PLAYING_STACK_Y + cardHeight + 30;
+        int stackTop = (non_playing_stack_y * 2) + cardHeight;
         // Assign location to each of the stacks
-        double stackLeft = EDGE_MARGIN * screenWidth;
+        double stackLeft = edgeMargin;
         for (int j=0; j<8; ++j) {
             Stack stack = stacks[j];
             stack.assignPosition((int) stackLeft, stackTop, cardWidth);
             stackLeft += stackWidth;
         }
         // Initiate un-played cards and stack locations
-        stacks[8].assignPosition((int) (0.8*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
-        stacks[9].assignPosition((int) (0.1*screenWidth), NON_PLAYING_STACK_Y, cardWidth);
+        int unplayedMargin = (int) (screenWidth * Const.NON_PLAYING_EDGE_MARGIN_PCT);
+        stacks[8].assignPosition((screenWidth - unplayedMargin), non_playing_stack_y, cardWidth);
+        stacks[9].assignPosition(unplayedMargin, non_playing_stack_y, cardWidth);
     }
 
-    void updateOrientation(int screenWidth, int screenHeight) {
-        // Called when the screen is rotated, re-arrange stack spacing
-        this.screenWidth = screenWidth;
-        this.screenHeight = screenHeight;
-        stackWidth = (int) (((1-EDGE_MARGIN*2) * screenWidth) / 8);
-        cardWidth = stackWidth - STACK_SPACING;
-        // Re-arrange stacks with new dimensions
-        arrangeStacks();
+    void setBottomMenuY(float bottomMenuY) {
+        // Called from GameView.initPaints(), to know where max stack height is.
+        maxStackHeight = ((int) bottomMenuY) - cardHeight - (2 * non_playing_stack_y);
+        // Loop through stacks and update maxHeight
+        for (Stack s : stacks) {
+            s.setMaxHeight(maxStackHeight);
+        }
     }
 
     void draw(Canvas canvas) {
@@ -163,7 +175,6 @@ public class Master {
         for (Stack stack : stacks) {
             movingStack = stack.touchContained(x, y);
             if (movingStack != null) {
-                Log.e(TAG, "stack taken from" + String.valueOf(stack.stackId));
                 if (movingStack.stackId == -2) {
                     // New cards clicked, add one to end of each stack
                     return distributeNewCards();
@@ -229,6 +240,7 @@ public class Master {
         } else {
             // Screen was clicked and dragged
             int legal = -1;
+            // TODO: Move 0.25 to Const
             x = movingStack.left + ((int) (0.25*stackWidth));
             y = movingStack.top;
             int topCardValue = movingStack.head.cardValue;
@@ -325,7 +337,6 @@ public class Master {
         // First, revert stacks that were completed (if any)
         for (int i=0; i<move.completedStackIds.size(); ++i) {
             int stackId = move.completedStackIds.get(i);
-            Log.e(TAG, "restoring stack:" + stackId);
             // remove bottom 13 cards from completed stack
             Stack newStack = stacks[9].removeStack(13);
             // add back to original stack
@@ -375,6 +386,7 @@ public class Master {
         }
         ArrayList<String> data = new ArrayList<String>();
         data.add("difficulty," + difficulty);
+        Log.e(TAG, "Storing seed:" + seed);
         data.add("seed," + seed);
         data = historyTracker.storeState(data);
         return data;

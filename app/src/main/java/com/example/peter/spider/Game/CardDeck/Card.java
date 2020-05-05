@@ -1,14 +1,10 @@
 package com.example.peter.spider.Game.CardDeck;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-
-import com.example.peter.spider.R;
-
-import java.util.HashMap;
 
 public class Card {
     /**
@@ -19,13 +15,12 @@ public class Card {
      */
 
     public Card next = null;  // reference to card below this card
-    private int width, height;
+    private int width, height, verticalCardSpacing;
     public int cardSuit, cardValue;
     private String value;
     public boolean hidden = true;
     private Drawable cardBack, suitImage;
     private Paint blockColor, textPaint;
-
 
     public Card(int cardSuit, int cardValue, Drawable cardBack, Drawable suitImage) {
         this.cardSuit = cardSuit;
@@ -57,9 +52,11 @@ public class Card {
         }
     }
 
-    public void setSize(int w, int h) {
+    public void setSize(int w, int h, int vcs) {
         width = w;
         height = h;
+        verticalCardSpacing = vcs;
+        textPaint.setTextSize((int) (vcs * 0.7));
     }
 
     public boolean unHide() {
@@ -106,10 +103,24 @@ public class Card {
             cardBack.draw(canvas);
         } else {
             canvas.drawRect(left, top, left+width, top+height, blockColor);
-            canvas.drawText(value, left+5, top+11, textPaint);
-            // Draw suit image
-            suitImage.setBounds(left+width-35, top+5, left+width-5, top+35);
+            int buffer = (int) (0.05*verticalCardSpacing);
+            int textTop = top + buffer + ((int) (verticalCardSpacing * 0.8));
+            canvas.drawText(value, left+buffer,  textTop, textPaint);
+
+            // Draw suit image (top-right corner)
+            int iconSize = (int) (0.8 * verticalCardSpacing);
+            suitImage.setBounds(left+width-iconSize-buffer, top+buffer,
+                    left+width-buffer, top+buffer+iconSize);
             suitImage.draw(canvas);
+
+            // Draw suit image (face)
+            if (next == null) {
+                int imageSize = (int) (width * 0.8);
+                buffer = (int) (width * 0.1);
+                suitImage.setBounds(left+buffer, top+verticalCardSpacing+buffer,
+                        left+imageSize+buffer, top+verticalCardSpacing+buffer+imageSize);
+                suitImage.draw(canvas);
+            }
         }
         // Draw divider between cards
         canvas.drawRect(left, top, left+width, top+2, textPaint);

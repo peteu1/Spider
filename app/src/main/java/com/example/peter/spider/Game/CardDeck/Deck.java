@@ -1,27 +1,27 @@
 package com.example.peter.spider.Game.CardDeck;
 
 import android.graphics.drawable.Drawable;
-import android.util.Log;
 
 import com.example.peter.spider.R;
 
 import java.util.HashMap;
+import java.util.Random;
 
 public class Deck {
 
-    private static final String TAG = "DECK";
+    //private static final String TAG = "DECK";
     private static final int DECK_SIZE = 52, NUM_STACKS = 10;
-    public int seed;
+    public long seed;
     private Card[] deck;
     private HashMap<Integer, Drawable> mStore;
 
-    public Deck(int difficulty, int seed, HashMap<Integer, Drawable> mStore) {
+    public Deck(int difficulty, long seed, HashMap<Integer, Drawable> mStore) {
         this.mStore = mStore;
         this.seed = seed;
-        deck = createDeck(difficulty);
+        deck = createDeck(difficulty, seed);
     }
 
-    private Card[] createDeck(int difficulty) {
+    private Card[] createDeck(int difficulty, long seed) {
         // Create ordered deck with every unique card
         Card[] rawDeck = new Card[DECK_SIZE];
         Drawable cardBack = mStore.get(R.id.card_back);
@@ -34,8 +34,33 @@ public class Deck {
                 ++cardNum;
             }
         }
-        // TODO: Shuffle the cards with seed (wait until after test winning games, etc.)
+        return shuffleDeck(rawDeck, seed);
+    }
+
+    private Card[] shuffleDeck(Card[] rawDeck, long seed) {
         Card[] shuffledDeck = rawDeck;
+        //
+        //int n = cards.Count;
+        int n = DECK_SIZE;
+        Random rand = new Random(seed);
+        //while (n > 1) {
+        while (n > 0) {
+            n--;
+            int k = rand.nextInt(DECK_SIZE);
+            // Swap cards at indexes k and n
+            Card temp = shuffledDeck[k];
+            shuffledDeck[k] = shuffledDeck[n];
+            shuffledDeck[n] = temp;
+        }
+        //    n--;
+        //    int k = Random.Range(0, n + 1);
+        //    // Swap cards at indexes k and n
+        //    int temp = cards[k];
+        //    cards[k] = cards[n];
+        //    cards[n] = temp;
+        //}
+
+
         return shuffledDeck;
     }
 
