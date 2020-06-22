@@ -8,16 +8,12 @@ New features needed:
 	- Main menu (res/layout/activity_main.xml)
 	- Stats menu (res/layout/activity_stats.xml) [Good enough for v1.0]
 		* Cheat: tap bottom right side of screen to win game (for testing stats menu)
-- Score (I just need to create the algorithm)
 - Option in main menu to show rules
-- Make the front of the cards look nicer (bigger number, big suit image on body)
-- Hints (use animation to show stack move for hint; don't modify game; set master.locked = true while hint animation showing)
 - Animations for:
 	- draw new cards (card moving to each stack), 
 	- completed stack (going up to top left)
 	- show hints
 - Visual response to illegal single tap (cards in stack spin if tapped but can't go anywhere)
-- Generate seed and shuffle deck according to random seed
 - Loading/Splash screen
 - Cache images instead of re-creating each time
 - AppIntro to give breif overview of the app
