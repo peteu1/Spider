@@ -3,6 +3,8 @@ package com.example.peter.spider.Game.CardDeck;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
+import android.util.Log;
 
 public class Stack {
     /**
@@ -12,31 +14,38 @@ public class Stack {
      *      1 for solved cards
      * Then another temporary instance used for moving cards
      */
-    // Constants
-    //private static final String TAG = "Stack";
 
-
+    private static final String TAG = "Stack";
     // Stack properties
     public int stackId;
-    Paint holderColor;
+    Paint holderColor, arrowColor, hintColor;
     // Size/location properties
     public int left, top;  // X/Y canvas coordinates
     private int stackHeight, maxHeight;
     private int cardWidth, cardHeight, numCards, vertical_card_spacing;
     // Game properties
     public Card head; // This will be the first node in the stack, w/ pointer to next
+    public int cardsHidden; // Indicates how many cards are not displayed when too many to display
+    public boolean showingFullStack; // Indicates if arrow has been touched
 
     public Stack(int stackId, Card head) {
         this.stackId = stackId;
         this.head = head;
         left = 0;
         top = 0;
+        cardsHidden = 0;
+        showingFullStack = false;
         initPaints();
     }
 
     private void initPaints() {
         holderColor = new Paint();
         holderColor.setColor(Color.rgb(150,150,150));
+        arrowColor = new Paint();
+        arrowColor.setColor(Color.rgb(215,215,215));
+        hintColor = new Paint();
+        hintColor.setStyle(Paint.Style.STROKE);
+        hintColor.setColor(Color.parseColor("#EBEB11"));
     }
 
     public void assignPosition(int left, int top, int cardWidth) {
@@ -45,7 +54,6 @@ public class Stack {
          *  constructor. Each card's width is set.
          */
         this.cardWidth = cardWidth;
-
         cardHeight = (int) (cardWidth * Const.CARD_WH_RATIO);
         vertical_card_spacing = (int) (cardHeight * Const.VERTICAL_CARD_SPACING_PCT);
         Card card = head;
@@ -56,6 +64,8 @@ public class Stack {
         this.computeHeight();
         this.left = left;
         this.top = top;
+        arrowColor.setStrokeWidth((int) (cardWidth/16));
+        hintColor.setStrokeWidth((int) (0.07 * cardWidth));
     }
 
     public void assignPosition(float x, float y) {
@@ -75,13 +85,10 @@ public class Stack {
         this.maxHeight = maxHeight;
     }
 
-    public void drawPlayingStack(Canvas canvas, Card firstCard) {
+    private void drawPlayingStack(Canvas canvas, Card firstCard) {
         // Helper function to draw a playing (static or moving) stack
         int cardIdx = 0;
         Card card = firstCard;
-//        if (card != head) {
-            // TODO: Add scrollable arrow
-//        }
         while (card != null) {
             int cardTop = top + cardIdx*vertical_card_spacing;
             card.draw(canvas, left, cardTop);
@@ -91,9 +98,9 @@ public class Stack {
     }
 
     public void drawStack(Canvas canvas) {
-        // Tells each card where to draw itself.
-        // Draw stack holder
+        // Tells each card where to draw itself
         if (stackId >= 0) {
+            // Draw stack holder
             canvas.drawRect(left, top, left+cardWidth, top+cardHeight, holderColor);
         } else {
             // Draw stack if moving
@@ -103,13 +110,17 @@ public class Stack {
             // Draw static playing stacks
             Card firstCard = head;
             // Ensure cards are visible (not too tall)
-            if (stackHeight > maxHeight) {
+            if ((stackHeight > maxHeight) && (!showingFullStack)) {
+                // Draw arrow
+                drawArrow(canvas);
                 // TODO: Make scrollable
-                int cardsToHide = ((stackHeight - maxHeight) / vertical_card_spacing) + 1;
+                cardsHidden = ((stackHeight - maxHeight) / vertical_card_spacing) + 1;
                 // Skip cards until we can see bottom
-                for (int i=0; i<cardsToHide; ++i) {
+                for (int i=0; i<cardsHidden; ++i) {
                     firstCard = firstCard.next;
                 }
+            } else {
+                cardsHidden = 0;
             }
             drawPlayingStack(canvas, firstCard);
         }
@@ -146,9 +157,45 @@ public class Stack {
         }
     }
 
+    public void drawHint(Canvas canvas, int numCards, boolean destination) {
+        // Highlights the cards involved in a hint
+        // @param destination: whether this stack is the destination of the hint
+        // TODO: Use maxHeight if cardsHidden > 0; also account for showingFullStack
+        int bottomY = top + stackHeight;
+        if (destination && (head != null)) {
+            bottomY += vertical_card_spacing;
+        }
+        int topY = bottomY - ((numCards-1)*vertical_card_spacing) - cardHeight;
+        Rect outline = new Rect(left, topY, left + cardWidth, bottomY);
+        canvas.drawRect(outline, hintColor);
+    }
+
     /**************************************************
      * Various helper methods
      **************************************************/
+
+    private void drawArrow(Canvas canvas) {
+        // Draws an arrow above the stack when too many cards to display
+        float qtrCard = (float) (0.25 * cardWidth);
+        canvas.drawLine(qtrCard+left, top-10, (2*qtrCard) + left,
+                top-qtrCard-10, arrowColor);
+        canvas.drawLine((2*qtrCard) + left, top-qtrCard-10,
+                (3*qtrCard) + left, top-10, arrowColor);
+    }
+
+    public boolean arrowTouched(float x, float y) {
+        // Checks whether the arrow above a stack that's too large to display was touched
+        if (cardsHidden == 0) {
+            return false;
+        }
+        if ((y < top) && (y > (top - (0.25 * cardWidth) - 10))) {
+            if ((x > left) && (x < (left+cardWidth))) {
+                showingFullStack = true;
+                return true;
+            }
+        }
+        return false;
+    }
 
     private void computeHeight() {
         // Re-compute stack height and number of cards
@@ -189,6 +236,29 @@ public class Stack {
             return null;
         }
         return head.bottomCard();
+    }
+
+    public Card getTopMovableCard() {
+        // Method used to get the cards that can be moved to find hints
+        if (head == null) {
+            return null;
+        }
+        Card thisCard = head;
+        // Get down to visible cards
+        while (thisCard.hidden) {
+            thisCard = thisCard.next;
+        }
+        // Loop down to bottom until cards can be moved
+        Card nextCard = thisCard;
+        while (nextCard.next != null) {
+            // Check if current card is movable
+            if (!nextCard.canHold()) {
+                // Can't move it, move on to the next
+                thisCard = nextCard.next;
+            }
+            nextCard = nextCard.next;
+        }
+        return thisCard;
     }
 
     /**************************************************
@@ -236,7 +306,7 @@ public class Stack {
                 }
                 // Normal playing stack touched, find which card was touched
                 // Get index of card touched
-                int topCardIdx =  (int) (((int)y-top) / vertical_card_spacing);
+                int topCardIdx =  (int) (((int)y-top) / vertical_card_spacing) + cardsHidden;
                 Card cardTouched;
                 boolean valid = true;  // valid until proven invalid
                 if (topCardIdx >= numCards) {
@@ -310,6 +380,7 @@ public class Stack {
          *         1 ~ empty space
          *         2 ~ correct number
          *         3 ~ correct number & suit
+         *         3+ ~ correct number & suit (add one for each suited card above)
          */
         if (head == null) {
             return 1;  // Empty space
@@ -318,7 +389,9 @@ public class Stack {
         if (bottomCard.canPlace(topCard.cardValue)) {
             // Legal placement
             if (bottomCard.cardSuit == topCard.cardSuit) {
-                return 3;  // Correct number & suit
+                int suitedCardsAbove = getTopMovableCard().cardsBelow();
+                Log.e(TAG, "Suited match, cards above:" + suitedCardsAbove);
+                return 2 + suitedCardsAbove;  // Correct number & suit
             }
             return 2;  // Correct number
         }

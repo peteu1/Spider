@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.peter.spider.MainActivity">
+    tools:context="com.example.peter.spider.SelectDifficultyActivity">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -19,7 +19,7 @@
                     android:layout_height="wrap_content"
                     android:scaleType="centerInside"
                     android:src="@mipmap/ic_launcher"/>
-                <TextView android:text="Spider Solitaire"
+                <TextView android:text="Play"
                     android:id="@+id/textView1"
                     android:paddingLeft="10dp"
                     android:textSize="35dp"
@@ -27,6 +27,15 @@
                     android:textStyle="bold" />
             </TableRow>
         </TableLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="50dp"
+            android:gravity="center"
+            android:paddingTop="15dp"
+            android:text="Select Difficulty"
+            android:textSize="30dp" />
 
         <android.support.constraint.Guideline
             android:id="@+id/guideline"
@@ -47,19 +56,39 @@
             android:orientation="vertical">
 
             <Button
-                android:id="@+id/button_play"
+                android:id="@+id/easy"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Play"
+                android:text="Easy"
                 android:textSize="30dp" />
 
             <Button
-                android:id="@+id/button_stats"
+                android:id="@+id/medium"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Stats"
+                android:text="Medium"
                 android:textSize="30dp" />
 
+            <Button
+                android:id="@+id/hard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Hard"
+                android:textSize="30dp" />
+
+            <Button
+                android:id="@+id/expert"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Expert"
+                android:textSize="30dp" />
+
+            <Button
+                android:id="@+id/resume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Resume"
+                android:textSize="30dp" />
         </LinearLayout>
 
     </LinearLayout>

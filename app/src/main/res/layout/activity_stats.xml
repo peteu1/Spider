@@ -77,7 +77,6 @@
                 <TextView
                     android:text="Best"
                     android:textSize="30sp"
-
                     android:layout_marginEnd="15dp"/>
             </TableRow>
             <TableRow>
@@ -114,7 +113,35 @@
                     android:layout_gravity="center"
                     android:textStyle="bold" />
             </TableRow>
+            <TableRow>
+                <TextView  android:id="@+id/currentScore"
+                    android:text="0"
+                    android:textSize="25sp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+                <TextView  android:id="@+id/rankScore"
+                    android:text="0"
+                    android:textSize="25sp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+                <TextView  android:id="@+id/bestScore"
+                    android:text="0"
+                    android:textSize="25sp"
+                    android:layout_gravity="center"
+                    android:textStyle="bold" />
+            </TableRow>
         </TableLayout>
+
+        <Button  android:id="@+id/new_game"
+            android:text="Play Again"
+            android:textSize="25sp"
+            android:layout_marginTop="30dp"
+            android:paddingTop="5dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/stats_table"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent" />
 
         <Button  android:id="@+id/menu"
             android:text="Return to Menu"
@@ -123,7 +150,7 @@
             android:paddingTop="5dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@+id/stats_table"
+            app:layout_constraintTop_toBottomOf="@+id/new_game"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent" />
 

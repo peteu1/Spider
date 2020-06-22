@@ -7,9 +7,12 @@ import android.util.Log;
 import com.example.peter.spider.Game.CardDeck.Card;
 import com.example.peter.spider.Game.CardDeck.Const;
 import com.example.peter.spider.Game.CardDeck.Deck;
+import com.example.peter.spider.Game.CardDeck.Hint;
 import com.example.peter.spider.Game.CardDeck.Stack;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -33,7 +36,13 @@ public class Master {
     // The following are used to track a moving stack
     private Stack movingStack = null;
     private int originalStack; // This is the stack where a moving stack was taken from
-    // Can't do anything while card stack is being animated
+
+    // Refers to a stack where the arrow was touched to display cards too tall for screen
+    public int displayFullStack;
+
+    // Store and track hints list
+    ArrayList<Hint> currentHints;
+    int hintPosition;
 
     Master(int screenWidth, int screenHeight, int difficulty,
            HashMap<Integer, Drawable> mStore) {
@@ -50,6 +59,7 @@ public class Master {
         // Constructor for resuming a saved game
         long timeElapsed = 0;
         int numMoves = 0;
+        int score = 0;
         boolean lastActionRemove = false;
         ArrayList<HistoryObject> history = new ArrayList<HistoryObject>();
         // Parse saved data
@@ -65,7 +75,11 @@ public class Master {
                 numMoves = Integer.parseInt(data[1]);
             } else if (data[0].equals("lastActionRemove")) {
                 lastActionRemove = Boolean.parseBoolean(data[1]);
-            } else {
+            } else if (data[0].equals("score")) {
+                score = Integer.parseInt(data[1]);
+            }
+
+            else {
                 // Get history object
                 HistoryObject ho = new HistoryObject();
                 int numCards = Integer.parseInt(data[2]);
@@ -80,7 +94,7 @@ public class Master {
         this.screenHeight = screenHeight;
         initialize(mStore);
         // Restore historyTracker and re-create all moves
-        restoreHistory(history, timeElapsed, numMoves, lastActionRemove);
+        restoreHistory(history, timeElapsed, numMoves, score, lastActionRemove);
     }
 
     private void generateSeed() {
@@ -91,9 +105,21 @@ public class Master {
 
     private void initialize(HashMap<Integer, Drawable> mStore) {
         // Helper for new -- and restored -- master constructors
-        edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT);
+        if (screenWidth > screenHeight) {
+            // Landscape
+            edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT_LANDSCAPE);
+        } else {
+            // Portrait
+            edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT);
+        }
         stackWidth = (int) ((screenWidth - edgeMargin*2) / 8);
-        stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT);
+        if (screenWidth > screenHeight) {
+            // Landscape
+            stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT_LANDSCAPE);
+        } else {
+            // Portrait
+            stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT);
+        }
         cardWidth = stackWidth - stackSpacing;
         cardHeight = (int) (cardWidth * Const.CARD_WH_RATIO);
         non_playing_stack_y = (int) (Const.NON_PLAYING_STACK_Y_PCT * screenHeight);
@@ -102,19 +128,34 @@ public class Master {
         historyTracker = new HistoryTracker();
         arrangeStacks();
         textPaintSize = (int) (non_playing_stack_y * Const.MENU_PAINT_PCT);
+        displayFullStack = -1;
+        currentHints = new ArrayList<>();
+        hintPosition = -1;
     }
 
     public int updateOrientation(int screenWidth, int screenHeight) {
         // Called when the screen is rotated, re-arrange stack spacing
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
-        edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT);
+
+        if (screenWidth > screenHeight) {
+            // Landscape
+            edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT_LANDSCAPE);
+        } else {
+            // Portrait
+            edgeMargin = (int) (screenWidth * Const.EDGE_MARGIN_PCT);
+        }
         stackWidth = (int) ((screenWidth - edgeMargin*2) / 8);
-        stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT);
+        if (screenWidth > screenHeight) {
+            // Landscape
+            stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT_LANDSCAPE);
+        } else {
+            // Portrait
+            stackSpacing = (int) (screenWidth * Const.STACK_SPACING_PCT);
+        }
         cardWidth = stackWidth - stackSpacing;
         cardHeight = (int) (cardWidth * Const.CARD_WH_RATIO);
         non_playing_stack_y = (int) (Const.NON_PLAYING_STACK_Y_PCT * screenHeight);
-
         // Re-arrange stacks with new dimensions
         arrangeStacks();
         textPaintSize = (int) (non_playing_stack_y * Const.MENU_PAINT_PCT);
@@ -154,6 +195,14 @@ public class Master {
         for (Stack stack : stacks) {
             stack.drawStack(canvas);
         }
+        // Highlight hints
+        if (hintPosition >= 0) {
+            Hint hint = currentHints.get(hintPosition);
+            Stack fromStack = stacks[hint.getFromStack()];
+            fromStack.drawHint(canvas, hint.getCardsBelow(), false);
+            Stack toStack = stacks[hint.getToStack()];
+            toStack.drawHint(canvas, 1, true);
+        }
         if (movingStack != null) {
             // Draw moving stack as finger drags
             movingStack.drawStack(canvas);
@@ -171,6 +220,11 @@ public class Master {
          */
         // Check if a legal touch was initiated and get card stack
         // NOTE: Moving stack has stackId -1
+        if (displayFullStack >= 0) {
+            // Stop displaying full stack when screen is touched again
+            stacks[displayFullStack].showingFullStack = false;
+            displayFullStack = -1;
+        }
         // Loop through stacks to see if any cards were touched
         for (Stack stack : stacks) {
             movingStack = stack.touchContained(x, y);
@@ -294,9 +348,22 @@ public class Master {
             // Flip over newly revealed card
             boolean cardFlipped = stacks[originalStack].flipBottomCard();
             move.cardRevealed = cardFlipped;
+            move.computeScore(historyTracker.getMillisElapsed());
             historyTracker.record(move);
         }
+        hintPosition = -1;
         movingStack = null;
+        return false;
+    }
+
+    public boolean arrowTouched(float x, float y) {
+        // Checks if the arrow above any stacks that are too tall was pressed
+        for (Stack stack : stacks) {
+            if (stack.arrowTouched(x, y)) {
+                displayFullStack = stack.stackId;
+                return true;
+            }
+        }
         return false;
     }
 
@@ -314,6 +381,7 @@ public class Master {
             nextCard = currentCard.next;  // Save next card
             currentCard.next = null;
             Stack completedStack = stacks[i].addCard(currentCard);
+            // Move stack if a complete stack was made
             if (completedStack != null) {
                 // Completed stack was created
                 stacks[9].addStack(completedStack);
@@ -325,11 +393,88 @@ public class Master {
         move.recordMove(8, 8, -3);
         historyTracker.record(move);
         movingStack = null;
+        hintPosition = -1;
         return false;  // NOTE: return false because cards aren't in motion
+    }
+
+    private boolean getHints() {
+        /**
+         * Create list of hints
+         * @return emptySpace: whether there are any empty spaces available
+         */
+        currentHints = new ArrayList<>();
+        boolean emptySpace = false;
+        for (int i=0; i<8; ++i) {
+            Stack fromStack = stacks[i];
+            // For each stack, get highest card that can be moved
+            Card card = fromStack.getTopMovableCard();
+            if (card == null) {
+                continue;
+            }
+            // Loop through other stacks to see where card can go
+            for (int j=0; j<8; ++j) {
+                if (i == j) {
+                    continue;
+                }
+                int rating = stacks[j].rateDrop(card);
+                if (rating > 2) {
+                    Hint h = new Hint(i, j, card, rating);
+                    currentHints.add(h);
+                } else if (rating == 1) {
+                    // Empty space available
+                    Log.e(TAG, "Rating 1");
+                    emptySpace = true;
+                }
+            }
+        }
+        return emptySpace;
+    }
+
+    String showHint() {
+        /**
+         * Called from GameView when hint button is clicked
+         * @ return gets Toasted by GameView; null if hints are available
+         */
+        Log.e(TAG, "Number of hints: " + currentHints.size());
+        Log.e(TAG, "Hint pos: " + hintPosition);
+        if (hintPosition < 0) {
+            // Create/update list of hints
+            boolean emptySpace = getHints();
+            if (currentHints.size() == 0) {
+                // Use empty space
+                if (emptySpace) {
+                    Log.e(TAG, "Empty Space");
+                    // TODO: Highlight empty space
+                    return "Empty Space Available";
+                }
+                // Check if any un-played cards
+                if (stacks[8].head != null) {
+                    // TODO: Highlight stacks
+                    return "Draw new stack";
+                }
+                return "No Suggestions";
+            }
+            // Sort on rating, then number of cards being moved
+            Collections.sort(currentHints, (h1, h2) -> {
+                if (h1.getRating() != h2.getRating()) {
+                    return h2.getRating() - h1.getRating();
+                }
+                return h2.getCardsBelow() - h1.getCardsBelow();
+            });
+            hintPosition = 0;
+        } else {
+            // increment hint position
+            hintPosition++;
+            if (hintPosition >= currentHints.size()) {
+                hintPosition = 0;
+            }
+        }
+        return null;
     }
 
     boolean undo() {
         // Un-does a move when undo is clicked
+        hintPosition = -1;
         if (historyTracker.isEmpty()) {
             return false;
         }
@@ -386,14 +531,13 @@ public class Master {
         }
         ArrayList<String> data = new ArrayList<String>();
         data.add("difficulty," + difficulty);
-        Log.e(TAG, "Storing seed:" + seed);
         data.add("seed," + seed);
         data = historyTracker.storeState(data);
         return data;
     }
 
     private void restoreHistory(ArrayList<HistoryObject> history, long timeElapsed,
-                                int numMoves, boolean lastActionRemove) {
+                                int numMoves, int score, boolean lastActionRemove) {
         /**
          * Restores game to saved game state by looping through all moves in history
          *  and re-doing them. Also restores historyTracker to previous state.
@@ -410,7 +554,8 @@ public class Master {
             }
         }
         // Restores time elapsed, numMoves in historyTracker
-        historyTracker.restoreProperties(timeElapsed, numMoves, lastActionRemove);
+        Log.e(TAG, "Restoring history, numMoves = " + numMoves);
+        historyTracker.restoreProperties(timeElapsed, numMoves, score, lastActionRemove);
     }
 
 }

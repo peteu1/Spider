@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -29,8 +30,9 @@ import java.util.HashMap;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
-    //private static final String TAG = "GameView";
+    private static final String TAG = "GameView";
     public static final String GAME_STATE_FILE_NAME = "game_state.txt";
+    public static final String PREV_GAME_FILE_NAME = "prev_game.txt";
     private MainThread thread;
     private Context context;
     DisplayMetrics displayMetrics;
@@ -39,12 +41,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private boolean cardsInMotion;
     private int screenWidth, screenHeight;
     // Coordinates for "buttons"
-    private float topMenuY, bottomMenuY, centerX, undoX;
+    private float topMenuY, bottomMenuY, centerX, undoX, hintX;
 
     public GameView(Context context, int difficulty) {
         // Constructor for new game
         super(context);
         this.context = context;
+        Log.e(TAG, "New game constructor");
         HashMap<Integer, Drawable> mStore = initialize(difficulty);
         // Initialize Master
         master = new Master(screenWidth, screenHeight, difficulty, mStore);
@@ -55,6 +58,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // Constructor to restore game where it left off.
         super(context);
         this.context = context;
+        Log.e(TAG, "Restore game constructor");
         // Get saved data from file
         ArrayList<String> savedData = readSavedData();
         String line = savedData.get(0);
@@ -117,10 +121,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         textPaint.getTextBounds(mText, 0, mText.length(), centerBounds);
         centerX = (float) (screenWidth - centerBounds.width()) / 2;
         // Get X-coord for Undo "button"
-        Rect undoBounds = new Rect();
-        mText = "UNDO";
-        textPaint.getTextBounds(mText, 0, mText.length(), undoBounds);
-        undoX = (float) (screenWidth - undoBounds.width() - 15);
+        undoX = (float) 0.02 * screenWidth;
+        // Get X-coord for hint button
+        Rect hintBounds = new Rect();
+        mText = "HINT";
+        textPaint.getTextBounds(mText, 0, mText.length(), hintBounds);
+        hintX = (float) (screenWidth - hintBounds.width() - 15);
     }
 
 
@@ -163,8 +169,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             // Draw menu "button"
             canvas.drawText("MENU", centerX, topMenuY, textPaint);
 
-            // Draw "undo" button (bottom-right) TODO: Use undo icon instead
+            // Draw score
+            String score = String.valueOf(master.historyTracker.getScore());
+            // TODO: Get proper size of text
+            canvas.drawText(score, (float) (0.8 * screenWidth), topMenuY, textPaint);
+
+            // Draw "undo" button (bottom-left) TODO: Use undo icon instead
             canvas.drawText("UNDO", undoX, bottomMenuY, textPaint);
+
+            // Draw "hint" button (bottom-right)
+            canvas.drawText("HINT", hintX, bottomMenuY, textPaint);
 
             // Draw time elapsed (bottom center [directly below menu text])
             String time = master.historyTracker.getTimeElapsed();
@@ -190,6 +204,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             case MotionEvent.ACTION_DOWN:
                 // Initial touch of screen, check legality
                 cardsInMotion = master.legalTouch(x, y);
+                if ((!master.historyTracker.isClockRunning()) && cardsInMotion) {
+                    master.historyTracker.startClock();
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 // Touch is dragging
@@ -213,7 +230,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     int menuLeft = (int) centerX;
                     int menuRight = ((int) (trueCenterX - centerX) * 2) + menuLeft;
                     // Check if undo "button" was touched
-                    if ((x > undoX) && (y > bottomMenuY)) {
+                    // TODO: Improve the 0.95 for comfortable pressing of UNDO
+                    if ((x < (0.25*screenWidth)) && (y > (0.95 * bottomMenuY))) {
                         if (!master.undo()) {
                             Toast.makeText(context, "Nothing to undo...", Toast.LENGTH_SHORT).show();
                         }
@@ -222,8 +240,23 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     else if ((y < topMenuY) && (x > menuLeft) && (x < menuRight)) {
                         // Return to home screen
                         Intent i = new Intent(context, MainActivity.class);
-                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         context.startActivity(i);
+                    }
+                    // Check if show cards arrow touched
+                    else if (master.arrowTouched(x, y)) {
+                        Log.e(TAG, "Arrow touched!");
+                    }
+                    // Check if hint "button" was touched
+                    else if ((x > hintX) && (y > (0.95 * bottomMenuY))) {
+                        String msg = master.showHint();
+                        if (msg != null) {
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    // TODO: Remove automatic win
+                    else if ((x > (0.25*screenWidth)) && (x < (0.75*screenWidth)) && (y > (0.95 * bottomMenuY))) {
+                        gameWon();
                     }
                 }
                 break;
@@ -255,34 +288,50 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private void gameWon() {
         // Called when the game is won
         Toast.makeText(context, "You Win!", Toast.LENGTH_SHORT).show();
+        // Store finished game state to PREV_GAME_FILE_NAME
+        storeGameState(PREV_GAME_FILE_NAME);
         // Delete saved data in GAME_STATE_FILE_NAME
         File filePath = context.getExternalFilesDir(null);
         try {
             File file = new File(filePath, GAME_STATE_FILE_NAME);
             //boolean deleted = file.delete();
-            // TODO: NOTE: file being recreated when MainActivty gets paused
         } catch (Exception e) {
             e.printStackTrace();
         }
         // Get stats, add to intent & launch game won screen
         String currentTime = master.historyTracker.getTimeElapsed();
         int currentMoves = master.historyTracker.getNumMoves();
-        // TODO: Get score
+        int currentScore = master.historyTracker.getScore();
         Intent i = new Intent(context, StatsActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         i.putExtra("difficulty", master.difficulty);
         i.putExtra("currentTime", currentTime);
         i.putExtra("currentMoves", currentMoves);
+        i.putExtra("currentScore", currentScore);
+        // TODO: Trying to fix activity stack
+        killThread();
         context.startActivity(i);
+        Log.e(TAG, "Killing activity");
     }
 
     public void storeGameState() {
-        // Called from onPause(), stores game state data to file.
-        //Log.e(TAG, "storeGameState()");
+        /*
+        Called from SelectDifficultyActivity.onPause(), stores game state data to file.
+        Default value: GAME_STATE_FILE_NAME
+         */
+        storeGameState(GAME_STATE_FILE_NAME);
+    }
+
+    public void storeGameState(String path) {
+        /*
+        Stores the game state to specified location.
+        Either: GAME_STATE_FILE_NAME if called from SelectDifficultyActivity.onPause();
+        Or: PREV_GAME_FILE_NAME when the game is won.
+         */
         ArrayList<String> gameData = master.getGameState();
         File filePath = context.getExternalFilesDir(null);
         try {
-            File file = new File(filePath, GAME_STATE_FILE_NAME);
+            File file = new File(filePath, path);
             FileWriter writer = new FileWriter(file);
             for (String line : gameData) {
                 writer.append(line + "\n");
@@ -296,7 +345,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private ArrayList<String> readSavedData() {
         // Read game state data from file
-        //Log.e(TAG, "readSavedData()");
         File filePath = context.getExternalFilesDir(null);
         File file = new File(filePath, GAME_STATE_FILE_NAME);
         int length = (int) file.length();

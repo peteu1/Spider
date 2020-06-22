@@ -12,8 +12,10 @@ public class Const {
     public static final double MENU_PAINT_PCT = 0.7;
     // Percentage of screen's X-axis for margin between playing stacks
     public static final double STACK_SPACING_PCT = 0.005;
+    public static final double STACK_SPACING_PCT_LANDSCAPE = 0.015;
     // Percentage of screen's X-axis for margin outside left/right playing stacks
     public static final double EDGE_MARGIN_PCT = 0.02;
+    public static final double EDGE_MARGIN_PCT_LANDSCAPE = 0.15;
     // Percentage of screen's X-axis for margin outside left/right non-playing stacks
     public static final double NON_PLAYING_EDGE_MARGIN_PCT = 0.12;
     // Percent of card height shown for cards with cards below them
